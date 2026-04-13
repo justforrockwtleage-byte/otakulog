@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Otaku Log — Anime & Manga Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700;900&family=Space+Mono:wght@400;700&family=Bebas+Neue&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --ink: #0a0a0f;
+    --paper: #f5f0e8;
+    --red: #e8192c;
+    --gold: #f5a623;
+    --dim: #1a1a2e;
+    --muted: #6b6b7a;
+    --border: rgba(245,240,232,0.12);
+    --card: #12121f;
+    --card2: #16162a;
+  }
+
+- { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+background: var(–ink);
+color: var(–paper);
+font-family: ‘Space Mono’, monospace;
+min-height: 100vh;
+overflow-x: hidden;
+}
+
+body::before {
+content: ‘’;
+position: fixed;
+inset: 0;
+background-image: url(“data:image/svg+xml,%3Csvg viewBox=‘0 0 256 256’ xmlns=‘http://www.w3.org/2000/svg’%3E%3Cfilter id=‘noise’%3E%3CfeTurbulence type=‘fractalNoise’ baseFrequency=‘0.9’ numOctaves=‘4’ stitchTiles=‘stitch’/%3E%3C/filter%3E%3Crect width=‘100%25’ height=‘100%25’ filter=‘url(%23noise)’ opacity=‘0.04’/%3E%3C/svg%3E”);
+pointer-events: none;
+z-index: 1000;
+opacity: 0.4;
+}
+
+/* LOGIN */
+#loginScreen {
+display: none;
+min-height: 100vh;
+align-items: center;
+justify-content: center;
+flex-direction: column;
+gap: 2rem;
+padding: 2rem;
+text-align: center;
+}
+#loginScreen.visible { display: flex; }
+
+.login-logo { font-family: ‘Bebas Neue’, cursive; font-size: 3.5rem; letter-spacing: 0.1em; line-height: 1; }
+.login-logo span { color: var(–red); }
+.login-sub { font-size: 0.7rem; color: var(–muted); letter-spacing: 0.15em; text-transform: uppercase; margin-top: -1rem; }
+
+.login-card {
+background: var(–card);
+border: 1px solid var(–border);
+padding: 2.5rem 2rem;
+width: 100%;
+max-width: 360px;
+display: flex;
+flex-direction: column;
+gap: 1rem;
+}
+
+.login-card h2 { font-family: ‘Bebas Neue’, cursive; font-size: 1.4rem; letter-spacing: 0.1em; margin-bottom: 0.5rem; }
+
+.github-btn {
+display: flex; align-items: center; justify-content: center; gap: 10px;
+padding: 12px 20px;
+background: #24292e;
+border: 1px solid rgba(255,255,255,0.15);
+color: white;
+font-family: ‘Space Mono’, monospace;
+font-size: 0.78rem;
+cursor: pointer;
+transition: all 0.2s;
+letter-spacing: 0.05em;
+width: 100%;
+}
+.github-btn:hover { background: #2f363d; transform: translateY(-1px); }
+
+.login-divider {
+display: flex; align-items: center; gap: 1rem;
+color: var(–muted); font-size: 0.65rem; letter-spacing: 0.1em;
+}
+.login-divider::before, .login-divider::after { content: ‘’; flex: 1; height: 1px; background: var(–border); }
+
+.form-input, .form-select, .form-textarea {
+background: var(–dim); border: 1px solid var(–border);
+color: var(–paper); padding: 10px 12px;
+font-family: ‘Space Mono’, monospace; font-size: 0.78rem;
+outline: none; transition: border-color 0.15s; width: 100%;
+}
+.form-textarea { resize: vertical; min-height: 70px; }
+.form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(–red); }
+.form-select option { background: var(–dim); }
+
+.email-btn {
+padding: 10px 20px; background: var(–red); color: white;
+font-family: ‘Bebas Neue’, cursive; font-size: 1rem; letter-spacing: 0.1em;
+border: none; cursor: pointer; transition: background 0.15s; width: 100%;
+}
+.email-btn:hover { background: #ff2d3e; }
+.email-btn:disabled { background: #555; cursor: not-allowed; }
+
+.login-toggle { font-size: 0.65rem; color: var(–muted); cursor: pointer; }
+.login-toggle span { color: var(–red); text-decoration: underline; }
+.login-error { font-size: 0.68rem; color: var(–red); text-align: center; min-height: 1rem; }
+
+/* LOADING */
+#loadingScreen { display: none; min-height: 100vh; align-items: center; justify-content: center; flex-direction: column; gap: 1rem; }
+#loadingScreen.visible { display: flex; }
+.spinner { width: 36px; height: 36px; border: 3px solid var(–border); border-top-color: var(–red); border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-text { font-size: 0.7rem; color: var(–muted); letter-spacing: 0.1em; text-transform: uppercase; }
+
+/* TOAST */
+#toast {
+position: fixed; bottom: 2rem; left: 50%;
+transform: translateX(-50%) translateY(20px);
+background: var(–card); border: 1px solid var(–border);
+color: var(–paper); padding: 10px 20px; font-size: 0.72rem;
+letter-spacing: 0.05em; opacity: 0; transition: all 0.3s;
+z-index: 9999; white-space: nowrap;
+}
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* APP */
+#appScreen { display: none; }
+#appScreen.visible { display: block; }
+
+header {
+border-bottom: 1px solid var(–border); padding: 0 1rem;
+position: sticky; top: 0; z-index: 100;
+background: rgba(10,10,15,0.92); backdrop-filter: blur(12px);
+display: flex; align-items: center; justify-content: space-between;
+height: 56px; gap: 1rem;
+}
+
+.logo { font-family: ‘Bebas Neue’, cursive; font-size: 1.6rem; letter-spacing: 0.1em; flex-shrink: 0; }
+.logo span { color: var(–red); }
+
+.header-right { display: flex; align-items: center; gap: 0.75rem; }
+
+.user-pill { display: flex; align-items: center; gap: 6px; font-size: 0.62rem; color: var(–muted); max-width: 130px; overflow: hidden; }
+
+.user-avatar {
+width: 26px; height: 26px; border-radius: 50%;
+background: var(–dim); border: 1px solid var(–border);
+flex-shrink: 0; overflow: hidden;
+display: flex; align-items: center; justify-content: center; font-size: 0.7rem;
+}
+.user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.user-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.signout-btn {
+font-family: ‘Space Mono’, monospace; font-size: 0.58rem;
+padding: 4px 9px; background: none; border: 1px solid var(–border);
+color: var(–muted); cursor: pointer; transition: all 0.15s; flex-shrink: 0;
+}
+.signout-btn:hover { border-color: var(–red); color: var(–red); }
+
+.tabs { display: flex; border-bottom: 1px solid var(–border); }
+
+.tab {
+font-family: ‘Bebas Neue’, cursive; font-size: 0.9rem; letter-spacing: 0.1em;
+padding: 0.85rem 0.4rem; cursor: pointer; color: var(–muted);
+border-bottom: 3px solid transparent; transition: all 0.2s;
+background: none; border-left: none; border-right: none; border-top: none;
+display: flex; align-items: center; justify-content: center; gap: 0.3rem; flex: 1;
+}
+.tab .count { font-family: ‘Space Mono’, monospace; font-size: 0.58rem; background: var(–card2); padding: 1px 5px; border-radius: 20px; }
+.tab:hover { color: var(–paper); }
+.tab.active { color: var(–paper); border-bottom-color: var(–red); }
+.tab.active .count { background: var(–red); color: white; }
+
+main { max-width: 1200px; margin: 0 auto; padding: 1.5rem 1rem; }
+
+.section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.2rem; }
+.section-title { font-family: ‘Bebas Neue’, cursive; font-size: 2rem; letter-spacing: 0.06em; }
+.section-title .accent { color: var(–red); }
+.section-title .accent-gold { color: var(–gold); }
+
+.filter-row { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.2rem; }
+
+.filter-btn {
+font-family: ‘Space Mono’, monospace; font-size: 0.62rem; padding: 4px 12px;
+border: 1px solid var(–border); background: transparent; color: var(–muted);
+cursor: pointer; letter-spacing: 0.08em; text-transform: uppercase;
+transition: all 0.15s; border-radius: 2px;
+}
+.filter-btn:hover, .filter-btn.active { border-color: var(–red); color: var(–paper); background: rgba(232,25,44,0.08); }
+
+.add-btn {
+font-family: ‘Bebas Neue’, cursive; font-size: 0.9rem; letter-spacing: 0.1em;
+padding: 8px 16px; background: var(–red); color: white; border: none;
+cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 5px; flex-shrink: 0;
+}
+.add-btn:hover { background: #ff2d3e; }
+
+.card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)); gap: 1rem; }
+
+.card {
+background: var(–card); border: 1px solid var(–border);
+cursor: pointer; transition: all 0.25s; position: relative; overflow: hidden;
+animation: fadeUp 0.3s ease both;
+}
+@keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+.card:hover { border-color: rgba(245,240,232,0.3); transform: translateY(-3px); box-shadow: 0 12px 40px rgba(0,0,0,0.5); }
+
+.card-cover { width: 100%; aspect-ratio: 2/3; background: var(–card2); position: relative; overflow: hidden; }
+.card-cover-placeholder {
+position: absolute; inset: 0; display: flex; align-items: center;
+justify-content: center; flex-direction: column; gap: 8px;
+background: linear-gradient(135deg, var(–card2) 0%, #1e1e35 100%);
+}
+.card-cover-placeholder .emoji { font-size: 2.2rem; }
+.card-cover-placeholder .title-abbr { font-family: ‘Noto Serif JP’, serif; font-size: 0.6rem; color: var(–muted); text-align: center; padding: 0 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+
+.card-type-badge { position: absolute; top: 7px; left: 7px; font-size: 0.5rem; font-family: ‘Space Mono’, monospace; letter-spacing: 0.1em; padding: 2px 6px; text-transform: uppercase; font-weight: 700; }
+.badge-anime { background: var(–red); color: white; }
+.badge-manga { background: var(–gold); color: black; }
+
+.card-actions { position: absolute; top: 7px; right: 7px; display: flex; gap: 3px; opacity: 0; transition: opacity 0.2s; }
+.card:hover .card-actions { opacity: 1; }
+
+.icon-btn {
+width: 24px; height: 24px; background: rgba(10,10,15,0.85);
+border: 1px solid var(–border); color: var(–paper); cursor: pointer;
+display: flex; align-items: center; justify-content: center;
+font-size: 0.65rem; transition: all 0.15s; border-radius: 2px;
+}
+.icon-btn:hover { background: var(–red); border-color: var(–red); }
+
+.card-body { padding: 10px; }
+.card-title { font-family: ‘Noto Serif JP’, serif; font-size: 0.78rem; font-weight: 700; line-height: 1.4; margin-bottom: 3px; }
+.card-genre { font-size: 0.55rem; color: var(–muted); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 6px; }
+
+.progress-wrap { margin-top: 6px; }
+.progress-label { display: flex; justify-content: space-between; font-size: 0.55rem; color: var(–muted); margin-bottom: 3px; }
+.progress-bar { height: 3px; background: var(–card2); border-radius: 2px; overflow: hidden; }
+.progress-fill { height: 100%; background: var(–red); border-radius: 2px; transition: width 0.5s ease; }
+
+.stars { display: flex; gap: 2px; margin-top: 5px; }
+.star { font-size: 0.85rem; cursor: pointer; transition: transform 0.1s; color: #333; }
+.star.filled { color: var(–gold); }
+.star:hover { transform: scale(1.2); }
+
+.fav-char { margin-top: 6px; font-size: 0.58rem; color: var(–muted); display: flex; align-items: center; gap: 3px; }
+.fav-char span { color: var(–paper); }
+
+.notes-tag { margin-top: 5px; font-size: 0.55rem; color: var(–muted); font-style: italic; line-height: 1.5; border-left: 2px solid var(–border); padding-left: 5px; }
+
+.empty-state { grid-column: 1/-1; text-align: center; padding: 4rem 2rem; color: var(–muted); }
+.empty-state .empty-icon { font-size: 2.5rem; margin-bottom: 1rem; }
+.empty-state p { font-size: 0.72rem; line-height: 1.8; }
+
+/* MODAL */
+.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 500; align-items: center; justify-content: center; padding: 1rem; }
+.modal-overlay.open { display: flex; }
+.modal { background: var(–card); border: 1px solid var(–border); width: 100%; max-width: 460px; max-height: 90vh; overflow-y: auto; animation: modalIn 0.25s ease; }
+@keyframes modalIn { from { opacity: 0; transform: scale(0.95) translateY(20px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+
+.modal-header { padding: 1.2rem 1.5rem; border-bottom: 1px solid var(–border); display: flex; align-items: center; justify-content: space-between; }
+.modal-title { font-family: ‘Bebas Neue’, cursive; font-size: 1.3rem; letter-spacing: 0.1em; }
+.modal-close { font-size: 1.1rem; background: none; border: none; color: var(–muted); cursor: pointer; transition: color 0.15s; }
+.modal-close:hover { color: var(–red); }
+
+.modal-body { padding: 1.2rem 1.5rem; display: flex; flex-direction: column; gap: 0.9rem; }
+.form-group { display: flex; flex-direction: column; gap: 5px; }
+.form-label { font-size: 0.6rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(–muted); }
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.9rem; }
+
+.modal-footer { padding: 1rem 1.5rem; border-top: 1px solid var(–border); display: flex; gap: 0.5rem; justify-content: flex-end; }
+
+.btn-cancel { font-family: ‘Space Mono’, monospace; font-size: 0.7rem; padding: 8px 14px; background: none; border: 1px solid var(–border); color: var(–muted); cursor: pointer; transition: all 0.15s; }
+.btn-cancel:hover { color: var(–paper); border-color: rgba(245,240,232,0.3); }
+
+.btn-save { font-family: ‘Bebas Neue’, cursive; font-size: 0.95rem; letter-spacing: 0.1em; padding: 8px 22px; background: var(–red); color: white; border: none; cursor: pointer; transition: background 0.15s; }
+.btn-save:hover { background: #ff2d3e; }
+.btn-save:disabled { background: #555; cursor: not-allowed; }
+
+.detail-cover-area { width: 100%; aspect-ratio: 3/1; background: linear-gradient(135deg, var(–card2), #1a1a35); display: flex; align-items: center; justify-content: center; font-size: 4rem; position: relative; overflow: hidden; }
+.detail-cover-area::after { content: ‘’; position: absolute; bottom: 0; left: 0; right: 0; height: 60%; background: linear-gradient(transparent, var(–card)); }
+
+.detail-stars { display: flex; gap: 3px; }
+.detail-star { font-size: 1.2rem; cursor: pointer; transition: transform 0.1s; }
+.detail-star.filled { color: var(–gold); }
+.detail-star:hover { transform: scale(1.2); }
+
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: var(–ink); }
+::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(–red); }
+
+@media (max-width: 500px) { .form-row { grid-template-columns: 1fr; } }
+</style>
+
+</head>
+<body>
+
+<!-- LOADING -->
+
+<div id="loadingScreen" class="visible">
+  <div class="spinner"></div>
+  <div class="loading-text">Loading...</div>
+</div>
+
+<!-- LOGIN -->
+
+<div id="loginScreen">
+  <div class="login-logo">オタク<span>LOG</span></div>
+  <div class="login-sub">Your anime & manga tracker</div>
+  <div class="login-card">
+    <h2 id="authTitle">SIGN IN</h2>
+    <button class="github-btn" onclick="signInWithGitHub()">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+      Continue with GitHub
+    </button>
+    <div class="login-divider">or use email</div>
+    <div style="display:flex;flex-direction:column;gap:0.7rem">
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <input class="form-input" id="authEmail" type="email" placeholder="you@email.com" />
+      </div>
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input class="form-input" id="authPassword" type="password" placeholder="••••••••" />
+      </div>
+      <button class="email-btn" id="authSubmitBtn" onclick="handleEmailAuth()">SIGN IN</button>
+      <div class="login-error" id="authError"></div>
+      <div class="login-toggle" id="authToggle" onclick="toggleAuthMode()">No account? <span>Sign up</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+
+<div id="appScreen">
+  <header>
+    <div class="logo">オタク<span>LOG</span></div>
+    <div class="header-right">
+      <div class="user-pill">
+        <div class="user-avatar" id="userAvatar">?</div>
+        <div class="user-name" id="userName"></div>
+      </div>
+      <button class="signout-btn" onclick="signOut()">Sign out</button>
+    </div>
+  </header>
+
+  <div class="tabs" id="tabBar"></div>
+
+  <main>
+    <div class="section-header">
+      <div class="section-title" id="sectionTitle"></div>
+      <button class="add-btn" onclick="openAddModal()">＋ ADD</button>
+    </div>
+    <div class="filter-row" id="filterRow"></div>
+    <div class="card-grid" id="cardGrid"></div>
+  </main>
+</div>
+
+<!-- ADD/EDIT MODAL -->
+
+<div class="modal-overlay" id="addModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle">ADD ENTRY</div>
+      <button class="modal-close" onclick="closeModal('addModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Title *</label>
+          <input class="form-input" id="fTitle" placeholder="e.g. Berserk" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Type *</label>
+          <select class="form-select" id="fType">
+            <option value="anime">Anime</option>
+            <option value="manga">Manga</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Genre</label>
+          <input class="form-input" id="fGenre" placeholder="e.g. Action, Shonen" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Status *</label>
+          <select class="form-select" id="fStatus">
+            <option value="wishlist">Wish List</option>
+            <option value="inprogress">In Progress</option>
+            <option value="completed">Completed</option>
+          </select>
+        </div>
+      </div>
+      <div id="progressFields" style="display:none">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label" id="progressLabelCurrent">Episodes Watched</label>
+            <input class="form-input" id="fCurrent" type="number" min="0" placeholder="0" />
+          </div>
+          <div class="form-group">
+            <label class="form-label" id="progressLabelTotal">Total Episodes</label>
+            <input class="form-input" id="fTotal" type="number" min="0" placeholder="?" />
+          </div>
+        </div>
+      </div>
+      <div id="completedFields" style="display:none">
+        <div class="form-group">
+          <label class="form-label">Your Rating</label>
+          <div style="display:flex;gap:4px;margin-top:4px" id="modalStars"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Favorite Character</label>
+          <input class="form-input" id="fFavChar" placeholder="e.g. Levi Ackerman" />
+        </div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Notes</label>
+        <textarea class="form-textarea" id="fNotes" placeholder="Thoughts, recommendations..."></textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal('addModal')">Cancel</button>
+      <button class="btn-save" id="saveBtn" onclick="saveEntry()">SAVE</button>
+    </div>
+  </div>
+</div>
+
+<!-- DETAIL MODAL -->
+
+<div class="modal-overlay" id="detailModal">
+  <div class="modal" style="max-width:500px">
+    <div class="detail-cover-area" id="detailCover"></div>
+    <div class="modal-body" id="detailBody"></div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal('detailModal')">Close</button>
+      <button class="btn-save" onclick="editFromDetail()">EDIT</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const SUPABASE_URL = 'https://wcevfvvlhlpmumdgzhvx.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndjZXVmdnZsaGxwbXVtZGd6aHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwMzc2MzIsImV4cCI6MjA5MTYxMzYzMn0.4y3IZY4fxb5YOA2hu0IUDgxeLVtMk86Z49e9l9I5XjE';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let currentUser = null;
+let entries = [];
+let activeTab = 'wishlist';
+let activeFilter = 'all';
+let modalRating = 0;
+let editingId = null;
+let detailId = null;
+let isSignUp = false;
+
+const TABS = [
+  { id: 'wishlist', label: 'Wish List', icon: '📋' },
+  { id: 'inprogress', label: 'In Progress', icon: '▶' },
+  { id: 'completed', label: 'Completed', icon: '✦' },
+];
+
+const COVER_EMOJIS = {
+  anime: ['⚔️','🔥','💫','🌸','⚡','🎌','🗡️','🌙'],
+  manga: ['📖','🖤','✒️','🌑','⛩️','🎴','🖋️','📜']
+};
+
+// ── AUTH ──────────────────────────────────────────────────────────────────────
+async function signInWithGitHub() {
+  const { error } = await sb.auth.signInWithOAuth({
+    provider: 'github',
+    options: { redirectTo: window.location.href }
+  });
+  if (error) showToast('GitHub sign-in failed: ' + error.message);
+}
+
+async function handleEmailAuth() {
+  const email = document.getElementById('authEmail').value.trim();
+  const password = document.getElementById('authPassword').value;
+  const errEl = document.getElementById('authError');
+  const btn = document.getElementById('authSubmitBtn');
+  if (!email || !password) { errEl.textContent = 'Please fill in both fields.'; return; }
+  btn.disabled = true;
+  btn.textContent = isSignUp ? 'CREATING...' : 'SIGNING IN...';
+  errEl.textContent = '';
+  const result = isSignUp
+    ? await sb.auth.signUp({ email, password })
+    : await sb.auth.signInWithPassword({ email, password });
+  btn.disabled = false;
+  btn.textContent = isSignUp ? 'CREATE ACCOUNT' : 'SIGN IN';
+  if (result.error) {
+    errEl.textContent = result.error.message;
+  } else if (isSignUp && !result.data.session) {
+    errEl.style.color = 'var(--gold)';
+    errEl.textContent = 'Check your email to confirm!';
+  }
+}
+
+function toggleAuthMode() {
+  isSignUp = !isSignUp;
+  document.getElementById('authTitle').textContent = isSignUp ? 'CREATE ACCOUNT' : 'SIGN IN';
+  document.getElementById('authSubmitBtn').textContent = isSignUp ? 'CREATE ACCOUNT' : 'SIGN IN';
+  document.getElementById('authToggle').innerHTML = isSignUp
+    ? 'Already have an account? <span>Sign in</span>'
+    : 'No account? <span>Sign up</span>';
+  document.getElementById('authError').textContent = '';
+}
+
+async function signOut() {
+  await sb.auth.signOut();
+  currentUser = null; entries = [];
+  showLogin();
+}
+
+// ── INIT ──────────────────────────────────────────────────────────────────────
+async function init() {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) {
+    await onSignedIn(session.user);
+  } else {
+    showLogin();
+  }
+  sb.auth.onAuthStateChange(async (event, session) => {
+    if (session && event === 'SIGNED_IN') await onSignedIn(session.user);
+    else if (event === 'SIGNED_OUT') showLogin();
+  });
+}
+
+async function onSignedIn(user) {
+  currentUser = user;
+  showLoading();
+  await loadEntries();
+  showApp();
+  renderUserInfo();
+  renderAll();
+}
+
+function showLogin() {
+  document.getElementById('loadingScreen').classList.remove('visible');
+  document.getElementById('appScreen').classList.remove('visible');
+  document.getElementById('loginScreen').classList.add('visible');
+}
+
+function showApp() {
+  document.getElementById('loadingScreen').classList.remove('visible');
+  document.getElementById('loginScreen').classList.remove('visible');
+  document.getElementById('appScreen').classList.add('visible');
+}
+
+function showLoading() {
+  document.getElementById('loginScreen').classList.remove('visible');
+  document.getElementById('appScreen').classList.remove('visible');
+  document.getElementById('loadingScreen').classList.add('visible');
+}
+
+function renderUserInfo() {
+  if (!currentUser) return;
+  const meta = currentUser.user_metadata || {};
+  const name = meta.user_name || meta.name || currentUser.email?.split('@')[0] || 'User';
+  const avatar = meta.avatar_url;
+  document.getElementById('userName').textContent = name;
+  const avatarEl = document.getElementById('userAvatar');
+  avatarEl.innerHTML = avatar ? `<img src="${avatar}" alt="${name}" />` : name[0].toUpperCase();
+}
+
+// ── DATABASE ──────────────────────────────────────────────────────────────────
+async function loadEntries() {
+  const { data, error } = await sb.from('entries').select('*').order('added_at', { ascending: false });
+  if (error) { showToast('Error loading data'); return; }
+  entries = (data || []).map(dbToLocal);
+}
+
+function dbToLocal(row) {
+  return {
+    id: row.id, title: row.title, type: row.type, genre: row.genre || '',
+    status: row.status, current: row.current_progress || 0, total: row.total_progress || 0,
+    rating: row.rating || 0, favChar: row.fav_char || '', notes: row.notes || '',
+    addedAt: row.added_at, updatedAt: row.updated_at,
+  };
+}
+
+function localToDb(entry) {
+  return {
+    id: entry.id, user_id: currentUser.id, title: entry.title, type: entry.type,
+    genre: entry.genre, status: entry.status, current_progress: entry.current,
+    total_progress: entry.total, rating: entry.rating, fav_char: entry.favChar,
+    notes: entry.notes, added_at: entry.addedAt, updated_at: entry.updatedAt,
+  };
+}
+
+async function dbSave(entry) {
+  const { error } = await sb.from('entries').upsert(localToDb(entry));
+  if (error) showToast('Save failed: ' + error.message);
+}
+
+async function dbDelete(id) {
+  const { error } = await sb.from('entries').delete().eq('id', id);
+  if (error) showToast('Delete failed: ' + error.message);
+}
+
+// ── RENDER ────────────────────────────────────────────────────────────────────
+function renderAll() {
+  renderTabs(); renderFilters(); renderSectionTitle(); renderCards();
+}
+
+function renderTabs() {
+  document.getElementById('tabBar').innerHTML = TABS.map(t => {
+    const count = entries.filter(e => e.status === t.id).length;
+    return `<button class="tab ${activeTab === t.id ? 'active' : ''}" onclick="switchTab('${t.id}')">
+      ${t.icon} ${t.label} <span class="count">${count}</span>
+    </button>`;
+  }).join('');
+}
+
+function renderFilters() {
+  document.getElementById('filterRow').innerHTML = ['all','anime','manga'].map(f =>
+    `<button class="filter-btn ${activeFilter === f ? 'active' : ''}" onclick="switchFilter('${f}')">
+      ${f === 'all' ? 'All' : f === 'anime' ? '🎬 Anime' : '📖 Manga'}
+    </button>`
+  ).join('');
+}
+
+function renderSectionTitle() {
+  document.getElementById('sectionTitle').innerHTML = {
+    wishlist: '<span class="accent">WISH</span> LIST',
+    inprogress: 'IN <span class="accent">PROGRESS</span>',
+    completed: '<span class="accent-gold">✦</span> COMPLETED',
+  }[activeTab];
+}
+
+function renderCards() {
+  const grid = document.getElementById('cardGrid');
+  let filtered = entries.filter(e => e.status === activeTab);
+  if (activeFilter !== 'all') filtered = filtered.filter(e => e.type === activeFilter);
+  if (filtered.length === 0) {
+    grid.innerHTML = `<div class="empty-state"><div class="empty-icon">🎌</div><p>Nothing here yet. Tap + ADD to start.</p></div>`;
+    return;
+  }
+  grid.innerHTML = filtered.map((e, i) => buildCard(e, i)).join('');
+}
+
+function getEmoji(e) {
+  const pool = COVER_EMOJIS[e.type] || COVER_EMOJIS.anime;
+  return pool[(e.id.charCodeAt(0) + (e.id.charCodeAt(1) || 0)) % pool.length];
+}
+
+function buildCard(e, i) {
+  const emoji = getEmoji(e);
+  const pct = e.total > 0 ? Math.round((e.current / e.total) * 100) : 0;
+  let extras = '';
+  if (e.status === 'inprogress' && e.total > 0) {
+    extras = `<div class="progress-wrap">
+      <div class="progress-label"><span>${e.type === 'anime' ? 'Ep' : 'Ch'}</span><span>${e.current}/${e.total}</span></div>
+      <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+    </div>`;
+  }
+  if (e.status === 'completed') {
+    extras = `<div class="stars">${[1,2,3,4,5].map(s => `<span class="star ${s <= (e.rating||0) ? 'filled' : ''}" onclick="quickRate(event,'${e.id}',${s})">★</span>`).join('')}</div>`;
+    if (e.favChar) extras += `<div class="fav-char">♡ <span>${e.favChar}</span></div>`;
+  }
+  if (e.notes) extras += `<div class="notes-tag">${e.notes.slice(0,55)}${e.notes.length>55?'…':''}</div>`;
+
+  return `<div class="card" style="animation-delay:${(i%12)*0.04}s" onclick="openDetail('${e.id}')">
+    <div class="card-cover">
+      <div class="card-cover-placeholder">
+        <div class="emoji">${emoji}</div>
+        <div class="title-abbr">${e.title}</div>
+      </div>
+    </div>
+    <span class="card-type-badge badge-${e.type}">${e.type}</span>
+    <div class="card-actions">
+      <button class="icon-btn" onclick="event.stopPropagation();openEdit('${e.id}')">✎</button>
+      <button class="icon-btn" onclick="event.stopPropagation();deleteEntry('${e.id}',this)">✕</button>
+    </div>
+    <div class="card-body">
+      <div class="card-title">${e.title}</div>
+      ${e.genre ? `<div class="card-genre">${e.genre}</div>` : ''}
+      ${extras}
+    </div>
+  </div>`;
+}
+
+// ── INTERACTIONS ──────────────────────────────────────────────────────────────
+function switchTab(tab) { activeTab = tab; renderAll(); }
+function switchFilter(f) { activeFilter = f; renderCards(); renderFilters(); }
+
+function openAddModal() {
+  editingId = null; modalRating = 0;
+  document.getElementById('modalTitle').textContent = 'ADD ENTRY';
+  ['fTitle','fGenre','fCurrent','fTotal','fFavChar','fNotes'].forEach(id => document.getElementById(id).value = '');
+  document.getElementById('fType').value = 'anime';
+  document.getElementById('fStatus').value = activeTab;
+  updateFormFields();
+  document.getElementById('addModal').classList.add('open');
+}
+
+function openEdit(id) {
+  const e = entries.find(e => e.id === id); if (!e) return;
+  editingId = id; modalRating = e.rating || 0;
+  document.getElementById('modalTitle').textContent = 'EDIT ENTRY';
+  document.getElementById('fTitle').value = e.title;
+  document.getElementById('fType').value = e.type;
+  document.getElementById('fGenre').value = e.genre || '';
+  document.getElementById('fStatus').value = e.status;
+  document.getElementById('fCurrent').value = e.current || '';
+  document.getElementById('fTotal').value = e.total || '';
+  document.getElementById('fFavChar').value = e.favChar || '';
+  document.getElementById('fNotes').value = e.notes || '';
+  updateFormFields();
+  document.getElementById('addModal').classList.add('open');
+}
+
+function editFromDetail() { closeModal('detailModal'); openEdit(detailId); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+document.getElementById('fStatus').addEventListener('change', updateFormFields);
+document.getElementById('fType').addEventListener('change', updateFormFields);
+
+function updateFormFields() {
+  const status = document.getElementById('fStatus').value;
+  const type = document.getElementById('fType').value;
+  document.getElementById('progressFields').style.display = status === 'inprogress' ? 'block' : 'none';
+  document.getElementById('completedFields').style.display = status === 'completed' ? 'block' : 'none';
+  if (status === 'inprogress') {
+    document.getElementById('progressLabelCurrent').textContent = type === 'anime' ? 'Episodes Watched' : 'Chapters Read';
+    document.getElementById('progressLabelTotal').textContent = type === 'anime' ? 'Total Episodes' : 'Total Chapters';
+  }
+  renderModalStars();
+}
+
+function renderModalStars() {
+  document.getElementById('modalStars').innerHTML = [1,2,3,4,5].map(s =>
+    `<span class="star ${s <= modalRating ? 'filled' : ''}" style="font-size:1.4rem;cursor:pointer" onclick="setModalRating(${s})">★</span>`
+  ).join('');
+}
+
+function setModalRating(r) { modalRating = r; renderModalStars(); }
+
+async function saveEntry() {
+  const title = document.getElementById('fTitle').value.trim();
+  if (!title) { document.getElementById('fTitle').focus(); return; }
+  const btn = document.getElementById('saveBtn');
+  btn.disabled = true; btn.textContent = 'SAVING...';
+  const entry = {
+    id: editingId || (Date.now().toString(36) + Math.random().toString(36).slice(2)),
+    title, type: document.getElementById('fType').value,
+    genre: document.getElementById('fGenre').value.trim(),
+    status: document.getElementById('fStatus').value,
+    current: parseInt(document.getElementById('fCurrent').value) || 0,
+    total: parseInt(document.getElementById('fTotal').value) || 0,
+    rating: modalRating, favChar: document.getElementById('fFavChar').value.trim(),
+    notes: document.getElementById('fNotes').value.trim(),
+    addedAt: editingId ? entries.find(e => e.id === editingId)?.addedAt : Date.now(),
+    updatedAt: Date.now(),
+  };
+  await dbSave(entry);
+  if (editingId) { const idx = entries.findIndex(e => e.id === editingId); entries[idx] = entry; }
+  else entries.unshift(entry);
+  btn.disabled = false; btn.textContent = 'SAVE';
+  activeTab = entry.status;
+  closeModal('addModal');
+  renderAll();
+  showToast(editingId ? 'Entry updated!' : 'Entry added!');
+}
+
+async function deleteEntry(id, btn) {
+  if (btn && !btn.dataset.confirm) {
+    btn.dataset.confirm = '1'; btn.textContent = '?';
+    btn.style.background = '#e8192c'; btn.style.borderColor = '#e8192c';
+    setTimeout(() => { if (btn) { btn.dataset.confirm = ''; btn.textContent = '✕'; btn.style.background = ''; btn.style.borderColor = ''; } }, 2000);
+    return;
+  }
+  await dbDelete(id);
+  entries = entries.filter(e => e.id !== id);
+  renderAll();
+  showToast('Deleted.');
+}
+
+async function quickRate(evt, id, rating) {
+  evt.stopPropagation();
+  const e = entries.find(e => e.id === id); if (!e) return;
+  e.rating = rating; await dbSave(e); renderCards();
+}
+
+function openDetail(id) {
+  const e = entries.find(e => e.id === id); if (!e) return;
+  detailId = id;
+  document.getElementById('detailCover').innerHTML = `<div style="font-size:5rem;z-index:1;position:relative">${getEmoji(e)}</div>`;
+  const statusLabels = { wishlist: '📋 Wish List', inprogress: '▶ In Progress', completed: '✦ Completed' };
+  let body = `<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem">
+    <div>
+      <div style="font-family:'Bebas Neue',cursive;font-size:1.7rem;letter-spacing:0.06em;line-height:1.1">${e.title}</div>
+      ${e.genre ? `<div style="font-size:0.62rem;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-top:4px">${e.genre}</div>` : ''}
+    </div>
+    <span class="card-type-badge badge-${e.type}" style="position:static;flex-shrink:0;margin-top:4px">${e.type}</span>
+  </div>
+  <div style="font-size:0.68rem;color:var(--muted)">${statusLabels[e.status]}</div>`;
+  if (e.status === 'inprogress' && e.total > 0) {
+    const pct = Math.round((e.current / e.total) * 100);
+    body += `<div>
+      <div style="display:flex;justify-content:space-between;font-size:0.62rem;color:var(--muted);margin-bottom:6px"><span>${e.current} / ${e.total} ${e.type === 'anime' ? 'episodes' : 'chapters'}</span><span>${pct}%</span></div>
+      <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+    </div>`;
+  }
+  if (e.status === 'completed') {
+    body += `<div>
+      <div style="font-size:0.6rem;color:var(--muted);margin-bottom:6px;letter-spacing:0.1em;text-transform:uppercase">Your Rating</div>
+      <div class="detail-stars">${[1,2,3,4,5].map(s => `<span class="detail-star ${s <= (e.rating||0) ? 'filled' : ''}" onclick="quickRate(event,'${e.id}',${s})">★</span>`).join('')}</div>
+    </div>`;
+    if (e.favChar) body += `<div style="font-size:0.75rem;color:var(--muted)">Fav character: <span style="color:var(--gold)">${e.favChar}</span></div>`;
+  }
+  if (e.notes) body += `<div style="border-left:2px solid var(--red);padding-left:12px">
+    <div style="font-size:0.6rem;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px">Notes</div>
+    <div style="font-size:0.76rem;line-height:1.7">${e.notes}</div>
+  </div>`;
+  document.getElementById('detailBody').innerHTML = body;
+  document.getElementById('detailModal').classList.add('open');
+}
+
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('open'); });
+});
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+init();
+</script>
+
+</body>
+</html>
