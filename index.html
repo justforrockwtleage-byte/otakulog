@@ -6,7 +6,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Otaku Log — Anime & Manga Tracker</title>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700;900&family=Space+Mono:wght@400;700&family=Bebas+Neue&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
   :root {
     --ink: #0a0a0f;
@@ -454,7 +454,7 @@ font-size: 0.65rem; transition: all 0.15s; border-radius: 2px;
 <script>
 const SUPABASE_URL = 'https://wcevfvvlhlpmumdgzhvx.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndjZXVmdnZsaGxwbXVtZGd6aHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwMzc2MzIsImV4cCI6MjA5MTYxMzYzMn0.4y3IZY4fxb5YOA2hu0IUDgxeLVtMk86Z49e9l9I5XjE';
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const sb = supabase.createClient ? supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let currentUser = null;
 let entries = [];
