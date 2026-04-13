@@ -4,302 +4,794 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Otaku Log — Anime & Manga Tracker</title>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700;900&family=Space+Mono:wght@400;700&family=Bebas+Neue&display=swap" rel="stylesheet">
+<title>OTAKU LOG</title>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
-  :root {
-    --ink: #0a0a0f;
-    --paper: #f5f0e8;
-    --red: #e8192c;
-    --gold: #f5a623;
-    --dim: #1a1a2e;
-    --muted: #6b6b7a;
-    --border: rgba(245,240,232,0.12);
-    --card: #12121f;
-    --card2: #16162a;
-  }
+:root {
+  --black: #000000;
+  --black2: #0d0d0d;
+  --black3: #141414;
+  --black4: #1c1c1c;
+  --red: #e8000f;
+  --red2: #ff1a26;
+  --red-dim: rgba(232,0,15,0.12);
+  --white: #ffffff;
+  --grey: #888888;
+  --grey2: #555555;
+  --border: rgba(255,255,255,0.07);
+  --border-red: rgba(232,0,15,0.4);
+}
 
-- { margin: 0; padding: 0; box-sizing: border-box; }
+- { margin:0; padding:0; box-sizing:border-box; }
 
-body {
-background: var(–ink);
-color: var(–paper);
-font-family: ‘Space Mono’, monospace;
+html, body {
+background: var(–black);
+color: var(–white);
+font-family: ‘DM Mono’, monospace;
 min-height: 100vh;
 overflow-x: hidden;
 }
 
-body::before {
-content: ‘’;
-position: fixed;
-inset: 0;
-background-image: url(“data:image/svg+xml,%3Csvg viewBox=‘0 0 256 256’ xmlns=‘http://www.w3.org/2000/svg’%3E%3Cfilter id=‘noise’%3E%3CfeTurbulence type=‘fractalNoise’ baseFrequency=‘0.9’ numOctaves=‘4’ stitchTiles=‘stitch’/%3E%3C/filter%3E%3Crect width=‘100%25’ height=‘100%25’ filter=‘url(%23noise)’ opacity=‘0.04’/%3E%3C/svg%3E”);
-pointer-events: none;
-z-index: 1000;
-opacity: 0.4;
+/* SCANLINE EFFECT */
+body::after {
+content:’’;
+position:fixed;
+inset:0;
+background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.03) 2px, rgba(0,0,0,0.03) 4px);
+pointer-events:none;
+z-index:999;
 }
 
-/* LOGIN */
+/* ── LOADING ── */
+#loadingScreen {
+display:none;
+position:fixed;
+inset:0;
+background:var(–black);
+align-items:center;
+justify-content:center;
+flex-direction:column;
+gap:1.5rem;
+z-index:100;
+}
+#loadingScreen.visible { display:flex; }
+
+.loader-logo {
+font-family:‘Oswald’,sans-serif;
+font-weight:700;
+font-size:2.5rem;
+letter-spacing:0.3em;
+color:var(–white);
+}
+.loader-logo span { color:var(–red); }
+
+.loader-bar {
+width:120px;
+height:2px;
+background:var(–black4);
+overflow:hidden;
+}
+.loader-bar-fill {
+height:100%;
+background:var(–red);
+animation: loadBar 1.2s ease-in-out infinite;
+}
+@keyframes loadBar {
+0% { width:0%; margin-left:0; }
+50% { width:60%; margin-left:40%; }
+100% { width:0%; margin-left:100%; }
+}
+
+/* ── LOGIN ── */
 #loginScreen {
-display: none;
-min-height: 100vh;
-align-items: center;
-justify-content: center;
-flex-direction: column;
-gap: 2rem;
-padding: 2rem;
-text-align: center;
+display:none;
+min-height:100vh;
+align-items:center;
+justify-content:center;
+flex-direction:column;
+padding:2rem;
 }
-#loginScreen.visible { display: flex; }
+#loginScreen.visible { display:flex; }
 
-.login-logo { font-family: ‘Bebas Neue’, cursive; font-size: 3.5rem; letter-spacing: 0.1em; line-height: 1; }
-.login-logo span { color: var(–red); }
-.login-sub { font-size: 0.7rem; color: var(–muted); letter-spacing: 0.15em; text-transform: uppercase; margin-top: -1rem; }
-
-.login-card {
-background: var(–card);
-border: 1px solid var(–border);
-padding: 2.5rem 2rem;
-width: 100%;
-max-width: 360px;
-display: flex;
-flex-direction: column;
-gap: 1rem;
+.login-wrap {
+width:100%;
+max-width:400px;
+display:flex;
+flex-direction:column;
+gap:0;
 }
 
-.login-card h2 { font-family: ‘Bebas Neue’, cursive; font-size: 1.4rem; letter-spacing: 0.1em; margin-bottom: 0.5rem; }
+.login-brand {
+margin-bottom:3rem;
+}
+
+.login-brand-logo {
+font-family:‘Oswald’,sans-serif;
+font-weight:700;
+font-size:3.8rem;
+letter-spacing:0.25em;
+line-height:1;
+color:var(–white);
+}
+.login-brand-logo span { color:var(–red); }
+
+.login-brand-sub {
+font-size:0.65rem;
+letter-spacing:0.25em;
+color:var(–grey);
+text-transform:uppercase;
+margin-top:0.5rem;
+padding-left:2px;
+}
+
+.login-box {
+background:var(–black3);
+border:1px solid var(–border);
+border-top:2px solid var(–red);
+}
+
+.login-box-header {
+padding:1.2rem 1.5rem;
+border-bottom:1px solid var(–border);
+}
+
+.login-box-title {
+font-family:‘Oswald’,sans-serif;
+font-weight:600;
+font-size:1.1rem;
+letter-spacing:0.2em;
+color:var(–white);
+}
+
+.login-box-body {
+padding:1.5rem;
+display:flex;
+flex-direction:column;
+gap:1rem;
+}
 
 .github-btn {
-display: flex; align-items: center; justify-content: center; gap: 10px;
-padding: 12px 20px;
-background: #24292e;
-border: 1px solid rgba(255,255,255,0.15);
-color: white;
-font-family: ‘Space Mono’, monospace;
-font-size: 0.78rem;
-cursor: pointer;
-transition: all 0.2s;
-letter-spacing: 0.05em;
-width: 100%;
+display:flex;
+align-items:center;
+justify-content:center;
+gap:10px;
+padding:13px;
+background:#161b22;
+border:1px solid rgba(255,255,255,0.1);
+color:var(–white);
+font-family:‘DM Mono’,monospace;
+font-size:0.75rem;
+letter-spacing:0.08em;
+cursor:pointer;
+transition:all 0.2s;
+width:100%;
 }
-.github-btn:hover { background: #2f363d; transform: translateY(-1px); }
+.github-btn:hover {
+background:#21262d;
+border-color:rgba(255,255,255,0.2);
+transform:translateY(-1px);
+}
 
-.login-divider {
-display: flex; align-items: center; gap: 1rem;
-color: var(–muted); font-size: 0.65rem; letter-spacing: 0.1em;
+.divider {
+display:flex;
+align-items:center;
+gap:1rem;
+color:var(–grey2);
+font-size:0.6rem;
+letter-spacing:0.15em;
+text-transform:uppercase;
 }
-.login-divider::before, .login-divider::after { content: ‘’; flex: 1; height: 1px; background: var(–border); }
+.divider::before,.divider::after {
+content:’’;
+flex:1;
+height:1px;
+background:var(–border);
+}
+
+.field { display:flex; flex-direction:column; gap:5px; }
+
+.field-label {
+font-size:0.58rem;
+letter-spacing:0.2em;
+text-transform:uppercase;
+color:var(–grey);
+}
+
+.field-input {
+background:var(–black4);
+border:1px solid var(–border);
+color:var(–white);
+padding:10px 12px;
+font-family:‘DM Mono’,monospace;
+font-size:0.78rem;
+outline:none;
+transition:border-color 0.15s;
+width:100%;
+letter-spacing:0.03em;
+}
+.field-input::placeholder { color:var(–grey2); }
+.field-input:focus { border-color:var(–red); }
+
+.submit-btn {
+padding:13px;
+background:var(–red);
+color:var(–white);
+font-family:‘Oswald’,sans-serif;
+font-weight:600;
+font-size:1rem;
+letter-spacing:0.25em;
+text-transform:uppercase;
+border:none;
+cursor:pointer;
+transition:background 0.15s;
+width:100%;
+}
+.submit-btn:hover { background:var(–red2); }
+.submit-btn:disabled { background:var(–grey2); cursor:not-allowed; }
+
+.auth-error {
+font-size:0.65rem;
+color:var(–red);
+letter-spacing:0.05em;
+min-height:1rem;
+text-align:center;
+}
+
+.auth-toggle {
+font-size:0.62rem;
+color:var(–grey);
+text-align:center;
+cursor:pointer;
+letter-spacing:0.05em;
+}
+.auth-toggle span { color:var(–red); text-decoration:underline; }
+
+/* ── APP ── */
+#appScreen { display:none; }
+#appScreen.visible { display:block; }
+
+/* HEADER */
+.app-header {
+height:52px;
+background:var(–black);
+border-bottom:1px solid var(–border);
+display:flex;
+align-items:center;
+justify-content:space-between;
+padding:0 1.2rem;
+position:sticky;
+top:0;
+z-index:50;
+}
+
+.header-logo {
+font-family:‘Oswald’,sans-serif;
+font-weight:700;
+font-size:1.4rem;
+letter-spacing:0.25em;
+color:var(–white);
+flex-shrink:0;
+}
+.header-logo span { color:var(–red); }
+
+.header-right {
+display:flex;
+align-items:center;
+gap:0.75rem;
+}
+
+.user-info {
+display:flex;
+align-items:center;
+gap:8px;
+}
+
+.user-avatar {
+width:28px;
+height:28px;
+border-radius:50%;
+background:var(–red-dim);
+border:1px solid var(–border-red);
+display:flex;
+align-items:center;
+justify-content:center;
+font-family:‘Oswald’,sans-serif;
+font-size:0.75rem;
+font-weight:600;
+color:var(–red);
+overflow:hidden;
+flex-shrink:0;
+}
+.user-avatar img { width:100%; height:100%; object-fit:cover; }
+
+.user-name {
+font-size:0.62rem;
+color:var(–grey);
+letter-spacing:0.05em;
+max-width:100px;
+overflow:hidden;
+text-overflow:ellipsis;
+white-space:nowrap;
+}
+
+.signout-btn {
+font-family:‘DM Mono’,monospace;
+font-size:0.58rem;
+padding:5px 10px;
+background:transparent;
+border:1px solid var(–border);
+color:var(–grey);
+cursor:pointer;
+letter-spacing:0.08em;
+transition:all 0.15s;
+text-transform:uppercase;
+}
+.signout-btn:hover { border-color:var(–red); color:var(–red); }
+
+/* TABS */
+.tab-bar {
+display:flex;
+border-bottom:1px solid var(–border);
+background:var(–black);
+position:sticky;
+top:52px;
+z-index:40;
+}
+
+.tab-btn {
+flex:1;
+padding:0.9rem 0.5rem;
+background:none;
+border:none;
+border-bottom:2px solid transparent;
+color:var(–grey);
+font-family:‘Oswald’,sans-serif;
+font-weight:500;
+font-size:0.82rem;
+letter-spacing:0.18em;
+text-transform:uppercase;
+cursor:pointer;
+transition:all 0.2s;
+display:flex;
+align-items:center;
+justify-content:center;
+gap:6px;
+}
+.tab-btn:hover { color:var(–white); }
+.tab-btn.active { color:var(–white); border-bottom-color:var(–red); }
+
+.tab-count {
+font-family:‘DM Mono’,monospace;
+font-size:0.58rem;
+background:var(–black4);
+color:var(–grey);
+padding:1px 6px;
+border-radius:2px;
+min-width:20px;
+text-align:center;
+}
+.tab-btn.active .tab-count {
+background:var(–red);
+color:var(–white);
+}
+
+/* MAIN */
+.app-main {
+max-width:1100px;
+margin:0 auto;
+padding:1.5rem 1rem 3rem;
+}
+
+/* TOP BAR */
+.top-bar {
+display:flex;
+align-items:center;
+justify-content:space-between;
+margin-bottom:1.2rem;
+gap:1rem;
+}
+
+.section-heading {
+font-family:‘Oswald’,sans-serif;
+font-weight:700;
+font-size:2rem;
+letter-spacing:0.1em;
+text-transform:uppercase;
+line-height:1;
+}
+.section-heading .r { color:var(–red); }
+
+.add-btn {
+font-family:‘Oswald’,sans-serif;
+font-weight:600;
+font-size:0.85rem;
+letter-spacing:0.2em;
+padding:9px 18px;
+background:var(–red);
+color:var(–white);
+border:none;
+cursor:pointer;
+transition:background 0.15s;
+text-transform:uppercase;
+flex-shrink:0;
+display:flex;
+align-items:center;
+gap:6px;
+}
+.add-btn:hover { background:var(–red2); }
+
+/* FILTERS */
+.filters {
+display:flex;
+gap:6px;
+margin-bottom:1.2rem;
+flex-wrap:wrap;
+}
+
+.filter-pill {
+font-family:‘DM Mono’,monospace;
+font-size:0.6rem;
+letter-spacing:0.1em;
+text-transform:uppercase;
+padding:5px 14px;
+border:1px solid var(–border);
+background:transparent;
+color:var(–grey);
+cursor:pointer;
+transition:all 0.15s;
+}
+.filter-pill:hover { color:var(–white); border-color:var(–grey2); }
+.filter-pill.active { background:var(–red-dim); border-color:var(–border-red); color:var(–white); }
+
+/* GRID */
+.card-grid {
+display:grid;
+grid-template-columns:repeat(auto-fill, minmax(150px, 1fr));
+gap:1px;
+background:var(–border);
+}
+
+/* CARD */
+.card {
+background:var(–black2);
+cursor:pointer;
+transition:background 0.2s;
+position:relative;
+animation:fadeIn 0.25s ease both;
+}
+@keyframes fadeIn {
+from { opacity:0; transform:translateY(8px); }
+to { opacity:1; transform:translateY(0); }
+}
+.card:hover { background:var(–black3); }
+.card:hover .card-actions { opacity:1; }
+
+.card-thumb {
+width:100%;
+aspect-ratio:2/3;
+background:var(–black3);
+position:relative;
+overflow:hidden;
+display:flex;
+align-items:center;
+justify-content:center;
+flex-direction:column;
+gap:6px;
+}
+
+.card-thumb-bg {
+position:absolute;
+inset:0;
+background:linear-gradient(160deg, var(–black4) 0%, #1a0003 100%);
+}
+
+.card-thumb-emoji {
+font-size:2.4rem;
+position:relative;
+z-index:1;
+filter:drop-shadow(0 0 20px rgba(232,0,15,0.3));
+}
+
+.card-thumb-title {
+position:relative;
+z-index:1;
+font-size:0.55rem;
+color:rgba(255,255,255,0.4);
+text-align:center;
+padding:0 8px;
+overflow:hidden;
+text-overflow:ellipsis;
+white-space:nowrap;
+max-width:100%;
+letter-spacing:0.05em;
+}
+
+.type-tag {
+position:absolute;
+top:0;
+left:0;
+font-family:‘Oswald’,sans-serif;
+font-weight:600;
+font-size:0.5rem;
+letter-spacing:0.15em;
+padding:3px 7px;
+text-transform:uppercase;
+z-index:2;
+}
+.type-anime { background:var(–red); color:white; }
+.type-manga { background:white; color:black; }
+
+.card-actions {
+position:absolute;
+top:6px;
+right:6px;
+display:flex;
+gap:3px;
+opacity:0;
+transition:opacity 0.15s;
+z-index:3;
+}
+
+.act-btn {
+width:26px;
+height:26px;
+background:rgba(0,0,0,0.8);
+border:1px solid var(–border);
+color:var(–white);
+display:flex;
+align-items:center;
+justify-content:center;
+font-size:0.65rem;
+cursor:pointer;
+transition:all 0.15s;
+}
+.act-btn:hover { background:var(–red); border-color:var(–red); }
+
+.card-info { padding:10px; }
+
+.card-title {
+font-family:‘Oswald’,sans-serif;
+font-weight:500;
+font-size:0.82rem;
+letter-spacing:0.05em;
+line-height:1.3;
+margin-bottom:3px;
+color:var(–white);
+}
+
+.card-genre {
+font-size:0.52rem;
+color:var(–grey2);
+letter-spacing:0.1em;
+text-transform:uppercase;
+margin-bottom:6px;
+}
+
+/* PROGRESS */
+.prog-wrap { margin-top:6px; }
+.prog-row {
+display:flex;
+justify-content:space-between;
+font-size:0.52rem;
+color:var(–grey);
+margin-bottom:4px;
+letter-spacing:0.05em;
+}
+.prog-bar { height:2px; background:var(–black4); }
+.prog-fill { height:100%; background:var(–red); transition:width 0.5s ease; }
+
+/* STARS */
+.stars { display:flex; gap:2px; margin-top:5px; }
+.star { font-size:0.85rem; cursor:pointer; color:var(–black4); transition:transform 0.1s, color 0.1s; }
+.star.on { color:var(–red); }
+.star:hover { transform:scale(1.2); }
+
+.fav-tag {
+font-size:0.55rem;
+color:var(–grey);
+margin-top:5px;
+display:flex;
+align-items:center;
+gap:3px;
+}
+.fav-tag b { color:rgba(255,255,255,0.7); font-weight:400; }
+
+.note-snip {
+font-size:0.52rem;
+color:var(–grey2);
+margin-top:5px;
+border-left:2px solid var(–red);
+padding-left:6px;
+line-height:1.5;
+font-style:italic;
+}
+
+/* EMPTY */
+.empty {
+grid-column:1/-1;
+background:var(–black2);
+text-align:center;
+padding:5rem 2rem;
+color:var(–grey2);
+}
+.empty-icon { font-size:2.5rem; margin-bottom:1rem; opacity:0.5; }
+.empty p { font-size:0.68rem; letter-spacing:0.08em; line-height:2; }
+
+/* ── MODAL ── */
+.overlay {
+display:none;
+position:fixed;
+inset:0;
+background:rgba(0,0,0,0.9);
+z-index:200;
+align-items:center;
+justify-content:center;
+padding:1rem;
+}
+.overlay.open { display:flex; }
+
+.modal {
+background:var(–black3);
+border:1px solid var(–border);
+border-top:2px solid var(–red);
+width:100%;
+max-width:460px;
+max-height:90vh;
+overflow-y:auto;
+animation:modalIn 0.2s ease;
+}
+@keyframes modalIn {
+from { opacity:0; transform:translateY(16px) scale(0.97); }
+to { opacity:1; transform:translateY(0) scale(1); }
+}
+
+.modal-head {
+padding:1.2rem 1.5rem;
+border-bottom:1px solid var(–border);
+display:flex;
+align-items:center;
+justify-content:space-between;
+}
+.modal-head-title {
+font-family:‘Oswald’,sans-serif;
+font-weight:600;
+font-size:1.1rem;
+letter-spacing:0.2em;
+text-transform:uppercase;
+}
+.modal-x {
+background:none;
+border:none;
+color:var(–grey);
+font-size:1.1rem;
+cursor:pointer;
+transition:color 0.15s;
+line-height:1;
+}
+.modal-x:hover { color:var(–red); }
+
+.modal-body {
+padding:1.5rem;
+display:flex;
+flex-direction:column;
+gap:1rem;
+}
+
+.form-row { display:grid; grid-template-columns:1fr 1fr; gap:1rem; }
+
+.form-group { display:flex; flex-direction:column; gap:5px; }
+
+.form-label {
+font-size:0.58rem;
+letter-spacing:0.18em;
+text-transform:uppercase;
+color:var(–grey);
+}
 
 .form-input, .form-select, .form-textarea {
-background: var(–dim); border: 1px solid var(–border);
-color: var(–paper); padding: 10px 12px;
-font-family: ‘Space Mono’, monospace; font-size: 0.78rem;
-outline: none; transition: border-color 0.15s; width: 100%;
+background:var(–black4);
+border:1px solid var(–border);
+color:var(–white);
+padding:9px 12px;
+font-family:‘DM Mono’,monospace;
+font-size:0.76rem;
+outline:none;
+transition:border-color 0.15s;
+width:100%;
+letter-spacing:0.02em;
 }
-.form-textarea { resize: vertical; min-height: 70px; }
-.form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(–red); }
-.form-select option { background: var(–dim); }
+.form-input::placeholder { color:var(–grey2); }
+.form-textarea { resize:vertical; min-height:65px; }
+.form-input:focus, .form-select:focus, .form-textarea:focus { border-color:var(–red); }
+.form-select option { background:var(–black4); }
 
-.email-btn {
-padding: 10px 20px; background: var(–red); color: white;
-font-family: ‘Bebas Neue’, cursive; font-size: 1rem; letter-spacing: 0.1em;
-border: none; cursor: pointer; transition: background 0.15s; width: 100%;
+.modal-foot {
+padding:1rem 1.5rem;
+border-top:1px solid var(–border);
+display:flex;
+gap:8px;
+justify-content:flex-end;
 }
-.email-btn:hover { background: #ff2d3e; }
-.email-btn:disabled { background: #555; cursor: not-allowed; }
 
-.login-toggle { font-size: 0.65rem; color: var(–muted); cursor: pointer; }
-.login-toggle span { color: var(–red); text-decoration: underline; }
-.login-error { font-size: 0.68rem; color: var(–red); text-align: center; min-height: 1rem; }
+.btn-cancel {
+font-family:‘DM Mono’,monospace;
+font-size:0.68rem;
+padding:8px 16px;
+background:none;
+border:1px solid var(–border);
+color:var(–grey);
+cursor:pointer;
+letter-spacing:0.06em;
+transition:all 0.15s;
+}
+.btn-cancel:hover { border-color:var(–grey2); color:var(–white); }
 
-/* LOADING */
-#loadingScreen { display: none; min-height: 100vh; align-items: center; justify-content: center; flex-direction: column; gap: 1rem; }
-#loadingScreen.visible { display: flex; }
-.spinner { width: 36px; height: 36px; border: 3px solid var(–border); border-top-color: var(–red); border-radius: 50%; animation: spin 0.8s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
-.loading-text { font-size: 0.7rem; color: var(–muted); letter-spacing: 0.1em; text-transform: uppercase; }
+.btn-save {
+font-family:‘Oswald’,sans-serif;
+font-weight:600;
+font-size:0.9rem;
+letter-spacing:0.2em;
+padding:8px 24px;
+background:var(–red);
+color:var(–white);
+border:none;
+cursor:pointer;
+transition:background 0.15s;
+text-transform:uppercase;
+}
+.btn-save:hover { background:var(–red2); }
+.btn-save:disabled { background:var(–grey2); cursor:not-allowed; }
+
+/* DETAIL MODAL */
+.detail-banner {
+width:100%;
+aspect-ratio:16/7;
+background:linear-gradient(135deg, #0d0003, #1a0005);
+display:flex;
+align-items:center;
+justify-content:center;
+font-size:5rem;
+position:relative;
+overflow:hidden;
+}
+.detail-banner::after {
+content:’’;
+position:absolute;
+inset:0;
+background:linear-gradient(to bottom, transparent 40%, var(–black3) 100%);
+}
+.detail-banner-emoji { position:relative; z-index:1; filter:drop-shadow(0 0 40px rgba(232,0,15,0.5)); }
 
 /* TOAST */
 #toast {
-position: fixed; bottom: 2rem; left: 50%;
-transform: translateX(-50%) translateY(20px);
-background: var(–card); border: 1px solid var(–border);
-color: var(–paper); padding: 10px 20px; font-size: 0.72rem;
-letter-spacing: 0.05em; opacity: 0; transition: all 0.3s;
-z-index: 9999; white-space: nowrap;
+position:fixed;
+bottom:1.5rem;
+left:50%;
+transform:translateX(-50%) translateY(16px);
+background:var(–black3);
+border:1px solid var(–border);
+border-left:3px solid var(–red);
+color:var(–white);
+padding:10px 20px;
+font-size:0.68rem;
+letter-spacing:0.08em;
+opacity:0;
+transition:all 0.25s;
+z-index:9999;
+white-space:nowrap;
+pointer-events:none;
 }
-#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+#toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
 
-/* APP */
-#appScreen { display: none; }
-#appScreen.visible { display: block; }
+::-webkit-scrollbar { width:4px; }
+::-webkit-scrollbar-track { background:var(–black); }
+::-webkit-scrollbar-thumb { background:var(–red); }
 
-header {
-border-bottom: 1px solid var(–border); padding: 0 1rem;
-position: sticky; top: 0; z-index: 100;
-background: rgba(10,10,15,0.92); backdrop-filter: blur(12px);
-display: flex; align-items: center; justify-content: space-between;
-height: 56px; gap: 1rem;
+@media(max-width:500px) {
+.form-row { grid-template-columns:1fr; }
+.user-name { display:none; }
 }
-
-.logo { font-family: ‘Bebas Neue’, cursive; font-size: 1.6rem; letter-spacing: 0.1em; flex-shrink: 0; }
-.logo span { color: var(–red); }
-
-.header-right { display: flex; align-items: center; gap: 0.75rem; }
-
-.user-pill { display: flex; align-items: center; gap: 6px; font-size: 0.62rem; color: var(–muted); max-width: 130px; overflow: hidden; }
-
-.user-avatar {
-width: 26px; height: 26px; border-radius: 50%;
-background: var(–dim); border: 1px solid var(–border);
-flex-shrink: 0; overflow: hidden;
-display: flex; align-items: center; justify-content: center; font-size: 0.7rem;
-}
-.user-avatar img { width: 100%; height: 100%; object-fit: cover; }
-.user-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-.signout-btn {
-font-family: ‘Space Mono’, monospace; font-size: 0.58rem;
-padding: 4px 9px; background: none; border: 1px solid var(–border);
-color: var(–muted); cursor: pointer; transition: all 0.15s; flex-shrink: 0;
-}
-.signout-btn:hover { border-color: var(–red); color: var(–red); }
-
-.tabs { display: flex; border-bottom: 1px solid var(–border); }
-
-.tab {
-font-family: ‘Bebas Neue’, cursive; font-size: 0.9rem; letter-spacing: 0.1em;
-padding: 0.85rem 0.4rem; cursor: pointer; color: var(–muted);
-border-bottom: 3px solid transparent; transition: all 0.2s;
-background: none; border-left: none; border-right: none; border-top: none;
-display: flex; align-items: center; justify-content: center; gap: 0.3rem; flex: 1;
-}
-.tab .count { font-family: ‘Space Mono’, monospace; font-size: 0.58rem; background: var(–card2); padding: 1px 5px; border-radius: 20px; }
-.tab:hover { color: var(–paper); }
-.tab.active { color: var(–paper); border-bottom-color: var(–red); }
-.tab.active .count { background: var(–red); color: white; }
-
-main { max-width: 1200px; margin: 0 auto; padding: 1.5rem 1rem; }
-
-.section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.2rem; }
-.section-title { font-family: ‘Bebas Neue’, cursive; font-size: 2rem; letter-spacing: 0.06em; }
-.section-title .accent { color: var(–red); }
-.section-title .accent-gold { color: var(–gold); }
-
-.filter-row { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.2rem; }
-
-.filter-btn {
-font-family: ‘Space Mono’, monospace; font-size: 0.62rem; padding: 4px 12px;
-border: 1px solid var(–border); background: transparent; color: var(–muted);
-cursor: pointer; letter-spacing: 0.08em; text-transform: uppercase;
-transition: all 0.15s; border-radius: 2px;
-}
-.filter-btn:hover, .filter-btn.active { border-color: var(–red); color: var(–paper); background: rgba(232,25,44,0.08); }
-
-.add-btn {
-font-family: ‘Bebas Neue’, cursive; font-size: 0.9rem; letter-spacing: 0.1em;
-padding: 8px 16px; background: var(–red); color: white; border: none;
-cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 5px; flex-shrink: 0;
-}
-.add-btn:hover { background: #ff2d3e; }
-
-.card-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)); gap: 1rem; }
-
-.card {
-background: var(–card); border: 1px solid var(–border);
-cursor: pointer; transition: all 0.25s; position: relative; overflow: hidden;
-animation: fadeUp 0.3s ease both;
-}
-@keyframes fadeUp { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
-.card:hover { border-color: rgba(245,240,232,0.3); transform: translateY(-3px); box-shadow: 0 12px 40px rgba(0,0,0,0.5); }
-
-.card-cover { width: 100%; aspect-ratio: 2/3; background: var(–card2); position: relative; overflow: hidden; }
-.card-cover-placeholder {
-position: absolute; inset: 0; display: flex; align-items: center;
-justify-content: center; flex-direction: column; gap: 8px;
-background: linear-gradient(135deg, var(–card2) 0%, #1e1e35 100%);
-}
-.card-cover-placeholder .emoji { font-size: 2.2rem; }
-.card-cover-placeholder .title-abbr { font-family: ‘Noto Serif JP’, serif; font-size: 0.6rem; color: var(–muted); text-align: center; padding: 0 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
-
-.card-type-badge { position: absolute; top: 7px; left: 7px; font-size: 0.5rem; font-family: ‘Space Mono’, monospace; letter-spacing: 0.1em; padding: 2px 6px; text-transform: uppercase; font-weight: 700; }
-.badge-anime { background: var(–red); color: white; }
-.badge-manga { background: var(–gold); color: black; }
-
-.card-actions { position: absolute; top: 7px; right: 7px; display: flex; gap: 3px; opacity: 0; transition: opacity 0.2s; }
-.card:hover .card-actions { opacity: 1; }
-
-.icon-btn {
-width: 24px; height: 24px; background: rgba(10,10,15,0.85);
-border: 1px solid var(–border); color: var(–paper); cursor: pointer;
-display: flex; align-items: center; justify-content: center;
-font-size: 0.65rem; transition: all 0.15s; border-radius: 2px;
-}
-.icon-btn:hover { background: var(–red); border-color: var(–red); }
-
-.card-body { padding: 10px; }
-.card-title { font-family: ‘Noto Serif JP’, serif; font-size: 0.78rem; font-weight: 700; line-height: 1.4; margin-bottom: 3px; }
-.card-genre { font-size: 0.55rem; color: var(–muted); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 6px; }
-
-.progress-wrap { margin-top: 6px; }
-.progress-label { display: flex; justify-content: space-between; font-size: 0.55rem; color: var(–muted); margin-bottom: 3px; }
-.progress-bar { height: 3px; background: var(–card2); border-radius: 2px; overflow: hidden; }
-.progress-fill { height: 100%; background: var(–red); border-radius: 2px; transition: width 0.5s ease; }
-
-.stars { display: flex; gap: 2px; margin-top: 5px; }
-.star { font-size: 0.85rem; cursor: pointer; transition: transform 0.1s; color: #333; }
-.star.filled { color: var(–gold); }
-.star:hover { transform: scale(1.2); }
-
-.fav-char { margin-top: 6px; font-size: 0.58rem; color: var(–muted); display: flex; align-items: center; gap: 3px; }
-.fav-char span { color: var(–paper); }
-
-.notes-tag { margin-top: 5px; font-size: 0.55rem; color: var(–muted); font-style: italic; line-height: 1.5; border-left: 2px solid var(–border); padding-left: 5px; }
-
-.empty-state { grid-column: 1/-1; text-align: center; padding: 4rem 2rem; color: var(–muted); }
-.empty-state .empty-icon { font-size: 2.5rem; margin-bottom: 1rem; }
-.empty-state p { font-size: 0.72rem; line-height: 1.8; }
-
-/* MODAL */
-.modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 500; align-items: center; justify-content: center; padding: 1rem; }
-.modal-overlay.open { display: flex; }
-.modal { background: var(–card); border: 1px solid var(–border); width: 100%; max-width: 460px; max-height: 90vh; overflow-y: auto; animation: modalIn 0.25s ease; }
-@keyframes modalIn { from { opacity: 0; transform: scale(0.95) translateY(20px); } to { opacity: 1; transform: scale(1) translateY(0); } }
-
-.modal-header { padding: 1.2rem 1.5rem; border-bottom: 1px solid var(–border); display: flex; align-items: center; justify-content: space-between; }
-.modal-title { font-family: ‘Bebas Neue’, cursive; font-size: 1.3rem; letter-spacing: 0.1em; }
-.modal-close { font-size: 1.1rem; background: none; border: none; color: var(–muted); cursor: pointer; transition: color 0.15s; }
-.modal-close:hover { color: var(–red); }
-
-.modal-body { padding: 1.2rem 1.5rem; display: flex; flex-direction: column; gap: 0.9rem; }
-.form-group { display: flex; flex-direction: column; gap: 5px; }
-.form-label { font-size: 0.6rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(–muted); }
-.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 0.9rem; }
-
-.modal-footer { padding: 1rem 1.5rem; border-top: 1px solid var(–border); display: flex; gap: 0.5rem; justify-content: flex-end; }
-
-.btn-cancel { font-family: ‘Space Mono’, monospace; font-size: 0.7rem; padding: 8px 14px; background: none; border: 1px solid var(–border); color: var(–muted); cursor: pointer; transition: all 0.15s; }
-.btn-cancel:hover { color: var(–paper); border-color: rgba(245,240,232,0.3); }
-
-.btn-save { font-family: ‘Bebas Neue’, cursive; font-size: 0.95rem; letter-spacing: 0.1em; padding: 8px 22px; background: var(–red); color: white; border: none; cursor: pointer; transition: background 0.15s; }
-.btn-save:hover { background: #ff2d3e; }
-.btn-save:disabled { background: #555; cursor: not-allowed; }
-
-.detail-cover-area { width: 100%; aspect-ratio: 3/1; background: linear-gradient(135deg, var(–card2), #1a1a35); display: flex; align-items: center; justify-content: center; font-size: 4rem; position: relative; overflow: hidden; }
-.detail-cover-area::after { content: ‘’; position: absolute; bottom: 0; left: 0; right: 0; height: 60%; background: linear-gradient(transparent, var(–card)); }
-
-.detail-stars { display: flex; gap: 3px; }
-.detail-star { font-size: 1.2rem; cursor: pointer; transition: transform 0.1s; }
-.detail-star.filled { color: var(–gold); }
-.detail-star:hover { transform: scale(1.2); }
-
-::-webkit-scrollbar { width: 5px; }
-::-webkit-scrollbar-track { background: var(–ink); }
-::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(–red); }
-
-@media (max-width: 500px) { .form-row { grid-template-columns: 1fr; } }
 </style>
 
 </head>
@@ -308,34 +800,40 @@ font-size: 0.65rem; transition: all 0.15s; border-radius: 2px;
 <!-- LOADING -->
 
 <div id="loadingScreen" class="visible">
-  <div class="spinner"></div>
-  <div class="loading-text">Loading...</div>
+  <div class="loader-logo">OTAKU<span>LOG</span></div>
+  <div class="loader-bar"><div class="loader-bar-fill"></div></div>
 </div>
 
 <!-- LOGIN -->
 
 <div id="loginScreen">
-  <div class="login-logo">オタク<span>LOG</span></div>
-  <div class="login-sub">Your anime & manga tracker</div>
-  <div class="login-card">
-    <h2 id="authTitle">SIGN IN</h2>
-    <button class="github-btn" onclick="signInWithGitHub()">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
-      Continue with GitHub
-    </button>
-    <div class="login-divider">or use email</div>
-    <div style="display:flex;flex-direction:column;gap:0.7rem">
-      <div class="form-group">
-        <label class="form-label">Email</label>
-        <input class="form-input" id="authEmail" type="email" placeholder="you@email.com" />
+  <div class="login-wrap">
+    <div class="login-brand">
+      <div class="login-brand-logo">OTAKU<span>LOG</span></div>
+      <div class="login-brand-sub">Anime &amp; Manga Tracker</div>
+    </div>
+    <div class="login-box">
+      <div class="login-box-header">
+        <div class="login-box-title" id="authTitle">SIGN IN</div>
       </div>
-      <div class="form-group">
-        <label class="form-label">Password</label>
-        <input class="form-input" id="authPassword" type="password" placeholder="••••••••" />
+      <div class="login-box-body">
+        <button class="github-btn" onclick="signInWithGitHub()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0 0 24 12c0-6.63-5.37-12-12-12z"/></svg>
+          CONTINUE WITH GITHUB
+        </button>
+        <div class="divider">or</div>
+        <div class="field">
+          <label class="field-label">Email</label>
+          <input class="field-input" id="authEmail" type="email" placeholder="you@email.com" />
+        </div>
+        <div class="field">
+          <label class="field-label">Password</label>
+          <input class="field-input" id="authPassword" type="password" placeholder="••••••••" />
+        </div>
+        <button class="submit-btn" id="authSubmitBtn" onclick="handleEmailAuth()">SIGN IN</button>
+        <div class="auth-error" id="authError"></div>
+        <div class="auth-toggle" id="authToggle" onclick="toggleAuthMode()">No account? <span>Sign up</span></div>
       </div>
-      <button class="email-btn" id="authSubmitBtn" onclick="handleEmailAuth()">SIGN IN</button>
-      <div class="login-error" id="authError"></div>
-      <div class="login-toggle" id="authToggle" onclick="toggleAuthMode()">No account? <span>Sign up</span></div>
     </div>
   </div>
 </div>
@@ -343,10 +841,10 @@ font-size: 0.65rem; transition: all 0.15s; border-radius: 2px;
 <!-- APP -->
 
 <div id="appScreen">
-  <header>
-    <div class="logo">オタク<span>LOG</span></div>
+  <header class="app-header">
+    <div class="header-logo">OTAKU<span>LOG</span></div>
     <div class="header-right">
-      <div class="user-pill">
+      <div class="user-info">
         <div class="user-avatar" id="userAvatar">?</div>
         <div class="user-name" id="userName"></div>
       </div>
@@ -354,25 +852,25 @@ font-size: 0.65rem; transition: all 0.15s; border-radius: 2px;
     </div>
   </header>
 
-  <div class="tabs" id="tabBar"></div>
+  <div class="tab-bar" id="tabBar"></div>
 
-  <main>
-    <div class="section-header">
-      <div class="section-title" id="sectionTitle"></div>
+  <div class="app-main">
+    <div class="top-bar">
+      <div class="section-heading" id="sectionHeading"></div>
       <button class="add-btn" onclick="openAddModal()">＋ ADD</button>
     </div>
-    <div class="filter-row" id="filterRow"></div>
+    <div class="filters" id="filters"></div>
     <div class="card-grid" id="cardGrid"></div>
-  </main>
+  </div>
 </div>
 
 <!-- ADD/EDIT MODAL -->
 
-<div class="modal-overlay" id="addModal">
+<div class="overlay" id="addModal">
   <div class="modal">
-    <div class="modal-header">
-      <div class="modal-title" id="modalTitle">ADD ENTRY</div>
-      <button class="modal-close" onclick="closeModal('addModal')">✕</button>
+    <div class="modal-head">
+      <div class="modal-head-title" id="modalTitle">ADD ENTRY</div>
+      <button class="modal-x" onclick="closeModal('addModal')">✕</button>
     </div>
     <div class="modal-body">
       <div class="form-row">
@@ -391,7 +889,7 @@ font-size: 0.65rem; transition: all 0.15s; border-radius: 2px;
       <div class="form-row">
         <div class="form-group">
           <label class="form-label">Genre</label>
-          <input class="form-input" id="fGenre" placeholder="e.g. Action, Shonen" />
+          <input class="form-input" id="fGenre" placeholder="Action, Shonen..." />
         </div>
         <div class="form-group">
           <label class="form-label">Status *</label>
@@ -405,11 +903,11 @@ font-size: 0.65rem; transition: all 0.15s; border-radius: 2px;
       <div id="progressFields" style="display:none">
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label" id="progressLabelCurrent">Episodes Watched</label>
+            <label class="form-label" id="lblCurrent">Episodes Watched</label>
             <input class="form-input" id="fCurrent" type="number" min="0" placeholder="0" />
           </div>
           <div class="form-group">
-            <label class="form-label" id="progressLabelTotal">Total Episodes</label>
+            <label class="form-label" id="lblTotal">Total Episodes</label>
             <input class="form-input" id="fTotal" type="number" min="0" placeholder="?" />
           </div>
         </div>
@@ -417,7 +915,7 @@ font-size: 0.65rem; transition: all 0.15s; border-radius: 2px;
       <div id="completedFields" style="display:none">
         <div class="form-group">
           <label class="form-label">Your Rating</label>
-          <div style="display:flex;gap:4px;margin-top:4px" id="modalStars"></div>
+          <div style="display:flex;gap:5px;margin-top:4px" id="modalStars"></div>
         </div>
         <div class="form-group">
           <label class="form-label">Favorite Character</label>
@@ -429,7 +927,7 @@ font-size: 0.65rem; transition: all 0.15s; border-radius: 2px;
         <textarea class="form-textarea" id="fNotes" placeholder="Thoughts, recommendations..."></textarea>
       </div>
     </div>
-    <div class="modal-footer">
+    <div class="modal-foot">
       <button class="btn-cancel" onclick="closeModal('addModal')">Cancel</button>
       <button class="btn-save" id="saveBtn" onclick="saveEntry()">SAVE</button>
     </div>
@@ -438,11 +936,11 @@ font-size: 0.65rem; transition: all 0.15s; border-radius: 2px;
 
 <!-- DETAIL MODAL -->
 
-<div class="modal-overlay" id="detailModal">
+<div class="overlay" id="detailModal">
   <div class="modal" style="max-width:500px">
-    <div class="detail-cover-area" id="detailCover"></div>
+    <div class="detail-banner" id="detailBanner"></div>
     <div class="modal-body" id="detailBody"></div>
-    <div class="modal-footer">
+    <div class="modal-foot">
       <button class="btn-cancel" onclick="closeModal('detailModal')">Close</button>
       <button class="btn-save" onclick="editFromDetail()">EDIT</button>
     </div>
@@ -454,55 +952,48 @@ font-size: 0.65rem; transition: all 0.15s; border-radius: 2px;
 <script>
 const SUPABASE_URL = 'https://wceufvvlhlpmumdgzhvx.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndjZXVmdnZsaGxwbXVtZGd6aHZ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYwMzc2MzIsImV4cCI6MjA5MTYxMzYzMn0.4y3IZY4fxb5YOA2hu0IUDgxeLVtMk86Z49e9l9I5XjE';
-const sb = supabase.createClient ? supabase.createClient(SUPABASE_URL, SUPABASE_KEY) : window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+const sb = (supabase.createClient ? supabase : window.supabase).createClient(SUPABASE_URL, SUPABASE_KEY);
 
-let currentUser = null;
-let entries = [];
-let activeTab = 'wishlist';
-let activeFilter = 'all';
-let modalRating = 0;
-let editingId = null;
-let detailId = null;
-let isSignUp = false;
+let currentUser = null, entries = [], activeTab = 'wishlist', activeFilter = 'all';
+let modalRating = 0, editingId = null, detailId = null, isSignUp = false;
 
 const TABS = [
-  { id: 'wishlist', label: 'Wish List', icon: '📋' },
-  { id: 'inprogress', label: 'In Progress', icon: '▶' },
-  { id: 'completed', label: 'Completed', icon: '✦' },
+  { id:'wishlist', label:'Wish List', icon:'◈' },
+  { id:'inprogress', label:'In Progress', icon:'▶' },
+  { id:'completed', label:'Completed', icon:'✦' },
 ];
 
-const COVER_EMOJIS = {
-  anime: ['⚔️','🔥','💫','🌸','⚡','🎌','🗡️','🌙'],
-  manga: ['📖','🖤','✒️','🌑','⛩️','🎴','🖋️','📜']
+const EMOJIS = {
+  anime:['⚔️','🔥','💫','🌸','⚡','🎌','🗡️','🌙','👁️','🐉'],
+  manga:['📖','🖤','✒️','🌑','⛩️','🎴','🖋️','📜','☽','🩸']
 };
 
 // ── AUTH ──────────────────────────────────────────────────────────────────────
 async function signInWithGitHub() {
   const { error } = await sb.auth.signInWithOAuth({
-    provider: 'github',
-    options: { redirectTo: window.location.href }
+    provider:'github',
+    options:{ redirectTo: window.location.href }
   });
-  if (error) showToast('GitHub sign-in failed: ' + error.message);
+  if (error) showToast('GitHub error: ' + error.message);
 }
 
 async function handleEmailAuth() {
   const email = document.getElementById('authEmail').value.trim();
-  const password = document.getElementById('authPassword').value;
+  const pass = document.getElementById('authPassword').value;
   const errEl = document.getElementById('authError');
   const btn = document.getElementById('authSubmitBtn');
-  if (!email || !password) { errEl.textContent = 'Please fill in both fields.'; return; }
+  if (!email || !pass) { errEl.textContent = 'Fill in both fields.'; return; }
   btn.disabled = true;
   btn.textContent = isSignUp ? 'CREATING...' : 'SIGNING IN...';
   errEl.textContent = '';
-  const result = isSignUp
-    ? await sb.auth.signUp({ email, password })
-    : await sb.auth.signInWithPassword({ email, password });
+  const r = isSignUp
+    ? await sb.auth.signUp({ email, password:pass })
+    : await sb.auth.signInWithPassword({ email, password:pass });
   btn.disabled = false;
   btn.textContent = isSignUp ? 'CREATE ACCOUNT' : 'SIGN IN';
-  if (result.error) {
-    errEl.textContent = result.error.message;
-  } else if (isSignUp && !result.data.session) {
-    errEl.style.color = 'var(--gold)';
+  if (r.error) { errEl.textContent = r.error.message; }
+  else if (isSignUp && !r.data.session) {
+    errEl.style.color = '#f5a623';
     errEl.textContent = 'Check your email to confirm!';
   }
 }
@@ -520,322 +1011,308 @@ function toggleAuthMode() {
 async function signOut() {
   await sb.auth.signOut();
   currentUser = null; entries = [];
-  showLogin();
+  showScreen('login');
 }
 
 // ── INIT ──────────────────────────────────────────────────────────────────────
 async function init() {
-  const { data: { session } } = await sb.auth.getSession();
-  if (session) {
-    await onSignedIn(session.user);
-  } else {
-    showLogin();
-  }
+  const { data:{ session } } = await sb.auth.getSession();
+  if (session) await onSignedIn(session.user);
+  else showScreen('login');
   sb.auth.onAuthStateChange(async (event, session) => {
     if (session && event === 'SIGNED_IN') await onSignedIn(session.user);
-    else if (event === 'SIGNED_OUT') showLogin();
+    else if (event === 'SIGNED_OUT') showScreen('login');
   });
 }
 
 async function onSignedIn(user) {
   currentUser = user;
-  showLoading();
+  showScreen('loading');
   await loadEntries();
-  showApp();
   renderUserInfo();
   renderAll();
+  showScreen('app');
 }
 
-function showLogin() {
-  document.getElementById('loadingScreen').classList.remove('visible');
-  document.getElementById('appScreen').classList.remove('visible');
-  document.getElementById('loginScreen').classList.add('visible');
-}
-
-function showApp() {
-  document.getElementById('loadingScreen').classList.remove('visible');
-  document.getElementById('loginScreen').classList.remove('visible');
-  document.getElementById('appScreen').classList.add('visible');
-}
-
-function showLoading() {
-  document.getElementById('loginScreen').classList.remove('visible');
-  document.getElementById('appScreen').classList.remove('visible');
-  document.getElementById('loadingScreen').classList.add('visible');
+function showScreen(name) {
+  document.getElementById('loadingScreen').classList.toggle('visible', name === 'loading');
+  document.getElementById('loginScreen').classList.toggle('visible', name === 'login');
+  document.getElementById('appScreen').classList.toggle('visible', name === 'app');
 }
 
 function renderUserInfo() {
-  if (!currentUser) return;
-  const meta = currentUser.user_metadata || {};
-  const name = meta.user_name || meta.name || currentUser.email?.split('@')[0] || 'User';
+  const meta = currentUser?.user_metadata || {};
+  const name = meta.user_name || meta.name || currentUser?.email?.split('@')[0] || 'User';
   const avatar = meta.avatar_url;
   document.getElementById('userName').textContent = name;
-  const avatarEl = document.getElementById('userAvatar');
-  avatarEl.innerHTML = avatar ? `<img src="${avatar}" alt="${name}" />` : name[0].toUpperCase();
+  const el = document.getElementById('userAvatar');
+  el.innerHTML = avatar ? `<img src="${avatar}" />` : name[0].toUpperCase();
 }
 
 // ── DATABASE ──────────────────────────────────────────────────────────────────
 async function loadEntries() {
-  const { data, error } = await sb.from('entries').select('*').order('added_at', { ascending: false });
-  if (error) { showToast('Error loading data'); return; }
+  const { data, error } = await sb.from('entries').select('*').order('added_at', { ascending:false });
+  if (error) { showToast('Load error'); return; }
   entries = (data || []).map(dbToLocal);
 }
 
-function dbToLocal(row) {
-  return {
-    id: row.id, title: row.title, type: row.type, genre: row.genre || '',
-    status: row.status, current: row.current_progress || 0, total: row.total_progress || 0,
-    rating: row.rating || 0, favChar: row.fav_char || '', notes: row.notes || '',
-    addedAt: row.added_at, updatedAt: row.updated_at,
-  };
+function dbToLocal(r) {
+  return { id:r.id, title:r.title, type:r.type, genre:r.genre||'', status:r.status,
+    current:r.current_progress||0, total:r.total_progress||0, rating:r.rating||0,
+    favChar:r.fav_char||'', notes:r.notes||'', addedAt:r.added_at, updatedAt:r.updated_at };
 }
 
-function localToDb(entry) {
-  return {
-    id: entry.id, user_id: currentUser.id, title: entry.title, type: entry.type,
-    genre: entry.genre, status: entry.status, current_progress: entry.current,
-    total_progress: entry.total, rating: entry.rating, fav_char: entry.favChar,
-    notes: entry.notes, added_at: entry.addedAt, updated_at: entry.updatedAt,
-  };
+function localToDb(e) {
+  return { id:e.id, user_id:currentUser.id, title:e.title, type:e.type, genre:e.genre,
+    status:e.status, current_progress:e.current, total_progress:e.total, rating:e.rating,
+    fav_char:e.favChar, notes:e.notes, added_at:e.addedAt, updated_at:e.updatedAt };
 }
 
 async function dbSave(entry) {
   const { error } = await sb.from('entries').upsert(localToDb(entry));
-  if (error) showToast('Save failed: ' + error.message);
+  if (error) showToast('Save error: ' + error.message);
 }
 
 async function dbDelete(id) {
   const { error } = await sb.from('entries').delete().eq('id', id);
-  if (error) showToast('Delete failed: ' + error.message);
+  if (error) showToast('Delete error');
 }
 
 // ── RENDER ────────────────────────────────────────────────────────────────────
 function renderAll() {
-  renderTabs(); renderFilters(); renderSectionTitle(); renderCards();
+  renderTabs(); renderFilters(); renderHeading(); renderCards();
 }
 
 function renderTabs() {
   document.getElementById('tabBar').innerHTML = TABS.map(t => {
-    const count = entries.filter(e => e.status === t.id).length;
-    return `<button class="tab ${activeTab === t.id ? 'active' : ''}" onclick="switchTab('${t.id}')">
-      ${t.icon} ${t.label} <span class="count">${count}</span>
+    const n = entries.filter(e => e.status === t.id).length;
+    return `<button class="tab-btn ${activeTab===t.id?'active':''}" onclick="switchTab('${t.id}')">
+      ${t.icon} ${t.label} <span class="tab-count">${n}</span>
     </button>`;
   }).join('');
 }
 
 function renderFilters() {
-  document.getElementById('filterRow').innerHTML = ['all','anime','manga'].map(f =>
-    `<button class="filter-btn ${activeFilter === f ? 'active' : ''}" onclick="switchFilter('${f}')">
-      ${f === 'all' ? 'All' : f === 'anime' ? '🎬 Anime' : '📖 Manga'}
+  document.getElementById('filters').innerHTML = ['all','anime','manga'].map(f =>
+    `<button class="filter-pill ${activeFilter===f?'active':''}" onclick="switchFilter('${f}')">
+      ${f==='all'?'ALL':f==='anime'?'ANIME':'MANGA'}
     </button>`
   ).join('');
 }
 
-function renderSectionTitle() {
-  document.getElementById('sectionTitle').innerHTML = {
-    wishlist: '<span class="accent">WISH</span> LIST',
-    inprogress: 'IN <span class="accent">PROGRESS</span>',
-    completed: '<span class="accent-gold">✦</span> COMPLETED',
-  }[activeTab];
+function renderHeading() {
+  const map = {
+    wishlist: '<span class="r">▸</span> WISH LIST',
+    inprogress: '<span class="r">▸</span> IN PROGRESS',
+    completed: '<span class="r">▸</span> COMPLETED',
+  };
+  document.getElementById('sectionHeading').innerHTML = map[activeTab];
 }
 
 function renderCards() {
   const grid = document.getElementById('cardGrid');
-  let filtered = entries.filter(e => e.status === activeTab);
-  if (activeFilter !== 'all') filtered = filtered.filter(e => e.type === activeFilter);
-  if (filtered.length === 0) {
-    grid.innerHTML = `<div class="empty-state"><div class="empty-icon">🎌</div><p>Nothing here yet. Tap + ADD to start.</p></div>`;
+  let list = entries.filter(e => e.status === activeTab);
+  if (activeFilter !== 'all') list = list.filter(e => e.type === activeFilter);
+  if (!list.length) {
+    grid.innerHTML = `<div class="empty"><div class="empty-icon">🎌</div><p>NOTHING HERE YET<br>TAP + ADD TO START</p></div>`;
     return;
   }
-  grid.innerHTML = filtered.map((e, i) => buildCard(e, i)).join('');
+  grid.innerHTML = list.map((e,i) => buildCard(e,i)).join('');
 }
 
 function getEmoji(e) {
-  const pool = COVER_EMOJIS[e.type] || COVER_EMOJIS.anime;
-  return pool[(e.id.charCodeAt(0) + (e.id.charCodeAt(1) || 0)) % pool.length];
+  const pool = EMOJIS[e.type] || EMOJIS.anime;
+  return pool[(e.id.charCodeAt(0)+(e.id.charCodeAt(1)||0)) % pool.length];
 }
 
 function buildCard(e, i) {
   const emoji = getEmoji(e);
-  const pct = e.total > 0 ? Math.round((e.current / e.total) * 100) : 0;
+  const pct = e.total > 0 ? Math.round(e.current/e.total*100) : 0;
   let extras = '';
+
   if (e.status === 'inprogress' && e.total > 0) {
-    extras = `<div class="progress-wrap">
-      <div class="progress-label"><span>${e.type === 'anime' ? 'Ep' : 'Ch'}</span><span>${e.current}/${e.total}</span></div>
-      <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+    extras = `<div class="prog-wrap">
+      <div class="prog-row"><span>${e.type==='anime'?'EP':'CH'} ${e.current}/${e.total}</span><span>${pct}%</span></div>
+      <div class="prog-bar"><div class="prog-fill" style="width:${pct}%"></div></div>
     </div>`;
   }
-  if (e.status === 'completed') {
-    extras = `<div class="stars">${[1,2,3,4,5].map(s => `<span class="star ${s <= (e.rating||0) ? 'filled' : ''}" onclick="quickRate(event,'${e.id}',${s})">★</span>`).join('')}</div>`;
-    if (e.favChar) extras += `<div class="fav-char">♡ <span>${e.favChar}</span></div>`;
-  }
-  if (e.notes) extras += `<div class="notes-tag">${e.notes.slice(0,55)}${e.notes.length>55?'…':''}</div>`;
 
-  return `<div class="card" style="animation-delay:${(i%12)*0.04}s" onclick="openDetail('${e.id}')">
-    <div class="card-cover">
-      <div class="card-cover-placeholder">
-        <div class="emoji">${emoji}</div>
-        <div class="title-abbr">${e.title}</div>
-      </div>
+  if (e.status === 'completed') {
+    extras = `<div class="stars">${[1,2,3,4,5].map(s=>`<span class="star ${s<=(e.rating||0)?'on':''}" onclick="quickRate(event,'${e.id}',${s})">★</span>`).join('')}</div>`;
+    if (e.favChar) extras += `<div class="fav-tag">♡ <b>${e.favChar}</b></div>`;
+  }
+
+  if (e.notes) extras += `<div class="note-snip">${e.notes.slice(0,55)}${e.notes.length>55?'…':''}</div>`;
+
+  return `<div class="card" style="animation-delay:${(i%12)*0.035}s" onclick="openDetail('${e.id}')">
+    <div class="card-thumb">
+      <div class="card-thumb-bg"></div>
+      <div class="card-thumb-emoji">${emoji}</div>
+      <div class="card-thumb-title">${e.title}</div>
     </div>
-    <span class="card-type-badge badge-${e.type}">${e.type}</span>
+    <span class="type-tag type-${e.type}">${e.type}</span>
     <div class="card-actions">
-      <button class="icon-btn" onclick="event.stopPropagation();openEdit('${e.id}')">✎</button>
-      <button class="icon-btn" onclick="event.stopPropagation();deleteEntry('${e.id}',this)">✕</button>
+      <button class="act-btn" onclick="event.stopPropagation();openEdit('${e.id}')">✎</button>
+      <button class="act-btn" onclick="event.stopPropagation();deleteEntry('${e.id}',this)">✕</button>
     </div>
-    <div class="card-body">
+    <div class="card-info">
       <div class="card-title">${e.title}</div>
-      ${e.genre ? `<div class="card-genre">${e.genre}</div>` : ''}
+      ${e.genre?`<div class="card-genre">${e.genre}</div>`:''}
       ${extras}
     </div>
   </div>`;
 }
 
-// ── INTERACTIONS ──────────────────────────────────────────────────────────────
-function switchTab(tab) { activeTab = tab; renderAll(); }
-function switchFilter(f) { activeFilter = f; renderCards(); renderFilters(); }
+// ── ACTIONS ──────────────────────────────────────────────────────────────────
+function switchTab(t) { activeTab=t; renderAll(); }
+function switchFilter(f) { activeFilter=f; renderFilters(); renderCards(); }
 
 function openAddModal() {
-  editingId = null; modalRating = 0;
-  document.getElementById('modalTitle').textContent = 'ADD ENTRY';
-  ['fTitle','fGenre','fCurrent','fTotal','fFavChar','fNotes'].forEach(id => document.getElementById(id).value = '');
-  document.getElementById('fType').value = 'anime';
-  document.getElementById('fStatus').value = activeTab;
-  updateFormFields();
+  editingId=null; modalRating=0;
+  document.getElementById('modalTitle').textContent='ADD ENTRY';
+  ['fTitle','fGenre','fCurrent','fTotal','fFavChar','fNotes'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('fType').value='anime';
+  document.getElementById('fStatus').value=activeTab;
+  updateFields();
   document.getElementById('addModal').classList.add('open');
 }
 
 function openEdit(id) {
-  const e = entries.find(e => e.id === id); if (!e) return;
-  editingId = id; modalRating = e.rating || 0;
-  document.getElementById('modalTitle').textContent = 'EDIT ENTRY';
-  document.getElementById('fTitle').value = e.title;
-  document.getElementById('fType').value = e.type;
-  document.getElementById('fGenre').value = e.genre || '';
-  document.getElementById('fStatus').value = e.status;
-  document.getElementById('fCurrent').value = e.current || '';
-  document.getElementById('fTotal').value = e.total || '';
-  document.getElementById('fFavChar').value = e.favChar || '';
-  document.getElementById('fNotes').value = e.notes || '';
-  updateFormFields();
+  const e=entries.find(e=>e.id===id); if(!e) return;
+  editingId=id; modalRating=e.rating||0;
+  document.getElementById('modalTitle').textContent='EDIT ENTRY';
+  document.getElementById('fTitle').value=e.title;
+  document.getElementById('fType').value=e.type;
+  document.getElementById('fGenre').value=e.genre||'';
+  document.getElementById('fStatus').value=e.status;
+  document.getElementById('fCurrent').value=e.current||'';
+  document.getElementById('fTotal').value=e.total||'';
+  document.getElementById('fFavChar').value=e.favChar||'';
+  document.getElementById('fNotes').value=e.notes||'';
+  updateFields();
   document.getElementById('addModal').classList.add('open');
 }
 
 function editFromDetail() { closeModal('detailModal'); openEdit(detailId); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 
-document.getElementById('fStatus').addEventListener('change', updateFormFields);
-document.getElementById('fType').addEventListener('change', updateFormFields);
+document.getElementById('fStatus').addEventListener('change', updateFields);
+document.getElementById('fType').addEventListener('change', updateFields);
 
-function updateFormFields() {
-  const status = document.getElementById('fStatus').value;
-  const type = document.getElementById('fType').value;
-  document.getElementById('progressFields').style.display = status === 'inprogress' ? 'block' : 'none';
-  document.getElementById('completedFields').style.display = status === 'completed' ? 'block' : 'none';
-  if (status === 'inprogress') {
-    document.getElementById('progressLabelCurrent').textContent = type === 'anime' ? 'Episodes Watched' : 'Chapters Read';
-    document.getElementById('progressLabelTotal').textContent = type === 'anime' ? 'Total Episodes' : 'Total Chapters';
+function updateFields() {
+  const s=document.getElementById('fStatus').value;
+  const t=document.getElementById('fType').value;
+  document.getElementById('progressFields').style.display=s==='inprogress'?'block':'none';
+  document.getElementById('completedFields').style.display=s==='completed'?'block':'none';
+  if(s==='inprogress') {
+    document.getElementById('lblCurrent').textContent=t==='anime'?'Episodes Watched':'Chapters Read';
+    document.getElementById('lblTotal').textContent=t==='anime'?'Total Episodes':'Total Chapters';
   }
   renderModalStars();
 }
 
 function renderModalStars() {
-  document.getElementById('modalStars').innerHTML = [1,2,3,4,5].map(s =>
-    `<span class="star ${s <= modalRating ? 'filled' : ''}" style="font-size:1.4rem;cursor:pointer" onclick="setModalRating(${s})">★</span>`
+  document.getElementById('modalStars').innerHTML=[1,2,3,4,5].map(s=>
+    `<span class="star ${s<=modalRating?'on':''}" style="font-size:1.4rem" onclick="setRating(${s})">★</span>`
   ).join('');
 }
-
-function setModalRating(r) { modalRating = r; renderModalStars(); }
+function setRating(r) { modalRating=r; renderModalStars(); }
 
 async function saveEntry() {
-  const title = document.getElementById('fTitle').value.trim();
-  if (!title) { document.getElementById('fTitle').focus(); return; }
-  const btn = document.getElementById('saveBtn');
-  btn.disabled = true; btn.textContent = 'SAVING...';
+  const title=document.getElementById('fTitle').value.trim();
+  if(!title) { document.getElementById('fTitle').focus(); return; }
+  const btn=document.getElementById('saveBtn');
+  btn.disabled=true; btn.textContent='SAVING...';
   const entry = {
-    id: editingId || (Date.now().toString(36) + Math.random().toString(36).slice(2)),
-    title, type: document.getElementById('fType').value,
-    genre: document.getElementById('fGenre').value.trim(),
-    status: document.getElementById('fStatus').value,
-    current: parseInt(document.getElementById('fCurrent').value) || 0,
-    total: parseInt(document.getElementById('fTotal').value) || 0,
-    rating: modalRating, favChar: document.getElementById('fFavChar').value.trim(),
-    notes: document.getElementById('fNotes').value.trim(),
-    addedAt: editingId ? entries.find(e => e.id === editingId)?.addedAt : Date.now(),
-    updatedAt: Date.now(),
+    id: editingId||(Date.now().toString(36)+Math.random().toString(36).slice(2)),
+    title, type:document.getElementById('fType').value,
+    genre:document.getElementById('fGenre').value.trim(),
+    status:document.getElementById('fStatus').value,
+    current:parseInt(document.getElementById('fCurrent').value)||0,
+    total:parseInt(document.getElementById('fTotal').value)||0,
+    rating:modalRating, favChar:document.getElementById('fFavChar').value.trim(),
+    notes:document.getElementById('fNotes').value.trim(),
+    addedAt:editingId?entries.find(e=>e.id===editingId)?.addedAt:Date.now(),
+    updatedAt:Date.now()
   };
   await dbSave(entry);
-  if (editingId) { const idx = entries.findIndex(e => e.id === editingId); entries[idx] = entry; }
+  if(editingId) { const i=entries.findIndex(e=>e.id===editingId); entries[i]=entry; }
   else entries.unshift(entry);
-  btn.disabled = false; btn.textContent = 'SAVE';
-  activeTab = entry.status;
+  btn.disabled=false; btn.textContent='SAVE';
+  activeTab=entry.status;
   closeModal('addModal');
   renderAll();
-  showToast(editingId ? 'Entry updated!' : 'Entry added!');
+  showToast(editingId?'Entry updated.':'Entry added.');
 }
 
 async function deleteEntry(id, btn) {
-  if (btn && !btn.dataset.confirm) {
-    btn.dataset.confirm = '1'; btn.textContent = '?';
-    btn.style.background = '#e8192c'; btn.style.borderColor = '#e8192c';
-    setTimeout(() => { if (btn) { btn.dataset.confirm = ''; btn.textContent = '✕'; btn.style.background = ''; btn.style.borderColor = ''; } }, 2000);
+  if(btn&&!btn.dataset.confirm) {
+    btn.dataset.confirm='1'; btn.textContent='?';
+    btn.style.background='var(--red)'; btn.style.borderColor='var(--red)';
+    setTimeout(()=>{ if(btn){btn.dataset.confirm='';btn.textContent='✕';btn.style.background='';btn.style.borderColor='';} },2000);
     return;
   }
   await dbDelete(id);
-  entries = entries.filter(e => e.id !== id);
-  renderAll();
-  showToast('Deleted.');
+  entries=entries.filter(e=>e.id!==id);
+  renderAll(); showToast('Deleted.');
 }
 
 async function quickRate(evt, id, rating) {
   evt.stopPropagation();
-  const e = entries.find(e => e.id === id); if (!e) return;
-  e.rating = rating; await dbSave(e); renderCards();
+  const e=entries.find(e=>e.id===id); if(!e) return;
+  e.rating=rating; await dbSave(e); renderCards();
 }
 
 function openDetail(id) {
-  const e = entries.find(e => e.id === id); if (!e) return;
-  detailId = id;
-  document.getElementById('detailCover').innerHTML = `<div style="font-size:5rem;z-index:1;position:relative">${getEmoji(e)}</div>`;
-  const statusLabels = { wishlist: '📋 Wish List', inprogress: '▶ In Progress', completed: '✦ Completed' };
-  let body = `<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem">
-    <div>
-      <div style="font-family:'Bebas Neue',cursive;font-size:1.7rem;letter-spacing:0.06em;line-height:1.1">${e.title}</div>
-      ${e.genre ? `<div style="font-size:0.62rem;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-top:4px">${e.genre}</div>` : ''}
+  const e=entries.find(e=>e.id===id); if(!e) return;
+  detailId=id;
+  document.getElementById('detailBanner').innerHTML=`<div class="detail-banner-emoji">${getEmoji(e)}</div>`;
+  const sl={wishlist:'◈ Wish List',inprogress:'▶ In Progress',completed:'✦ Completed'};
+  let body=`
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:1rem">
+      <div>
+        <div style="font-family:'Oswald',sans-serif;font-weight:700;font-size:1.6rem;letter-spacing:0.08em;line-height:1.1;text-transform:uppercase">${e.title}</div>
+        ${e.genre?`<div style="font-size:0.58rem;color:var(--grey);letter-spacing:0.15em;text-transform:uppercase;margin-top:5px">${e.genre}</div>`:''}
+      </div>
+      <span class="type-tag type-${e.type}" style="position:static;flex-shrink:0;margin-top:4px">${e.type}</span>
     </div>
-    <span class="card-type-badge badge-${e.type}" style="position:static;flex-shrink:0;margin-top:4px">${e.type}</span>
-  </div>
-  <div style="font-size:0.68rem;color:var(--muted)">${statusLabels[e.status]}</div>`;
-  if (e.status === 'inprogress' && e.total > 0) {
-    const pct = Math.round((e.current / e.total) * 100);
-    body += `<div>
-      <div style="display:flex;justify-content:space-between;font-size:0.62rem;color:var(--muted);margin-bottom:6px"><span>${e.current} / ${e.total} ${e.type === 'anime' ? 'episodes' : 'chapters'}</span><span>${pct}%</span></div>
-      <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
+    <div style="font-size:0.62rem;color:var(--grey2);letter-spacing:0.1em">${sl[e.status]}</div>`;
+
+  if(e.status==='inprogress'&&e.total>0) {
+    const pct=Math.round(e.current/e.total*100);
+    body+=`<div>
+      <div style="display:flex;justify-content:space-between;font-size:0.6rem;color:var(--grey);margin-bottom:6px;letter-spacing:0.05em">
+        <span>${e.current} / ${e.total} ${e.type==='anime'?'episodes':'chapters'}</span><span>${pct}%</span>
+      </div>
+      <div class="prog-bar"><div class="prog-fill" style="width:${pct}%"></div></div>
     </div>`;
   }
-  if (e.status === 'completed') {
-    body += `<div>
-      <div style="font-size:0.6rem;color:var(--muted);margin-bottom:6px;letter-spacing:0.1em;text-transform:uppercase">Your Rating</div>
-      <div class="detail-stars">${[1,2,3,4,5].map(s => `<span class="detail-star ${s <= (e.rating||0) ? 'filled' : ''}" onclick="quickRate(event,'${e.id}',${s})">★</span>`).join('')}</div>
+
+  if(e.status==='completed') {
+    body+=`<div>
+      <div style="font-size:0.58rem;color:var(--grey);letter-spacing:0.18em;text-transform:uppercase;margin-bottom:8px">Your Rating</div>
+      <div style="display:flex;gap:4px">${[1,2,3,4,5].map(s=>`<span style="font-size:1.4rem;cursor:pointer;color:${s<=(e.rating||0)?'var(--red)':'var(--black4)'}" onclick="quickRate(event,'${e.id}',${s})">★</span>`).join('')}</div>
     </div>`;
-    if (e.favChar) body += `<div style="font-size:0.75rem;color:var(--muted)">Fav character: <span style="color:var(--gold)">${e.favChar}</span></div>`;
+    if(e.favChar) body+=`<div style="font-size:0.72rem;color:var(--grey)">FAV CHARACTER — <span style="color:var(--white)">${e.favChar}</span></div>`;
   }
-  if (e.notes) body += `<div style="border-left:2px solid var(--red);padding-left:12px">
-    <div style="font-size:0.6rem;color:var(--muted);letter-spacing:0.1em;text-transform:uppercase;margin-bottom:6px">Notes</div>
-    <div style="font-size:0.76rem;line-height:1.7">${e.notes}</div>
+
+  if(e.notes) body+=`<div style="border-left:2px solid var(--red);padding-left:12px">
+    <div style="font-size:0.56rem;color:var(--grey);letter-spacing:0.18em;text-transform:uppercase;margin-bottom:6px">Notes</div>
+    <div style="font-size:0.74rem;line-height:1.8;color:rgba(255,255,255,0.8)">${e.notes}</div>
   </div>`;
-  document.getElementById('detailBody').innerHTML = body;
+
+  document.getElementById('detailBody').innerHTML=body;
   document.getElementById('detailModal').classList.add('open');
 }
 
-document.querySelectorAll('.modal-overlay').forEach(overlay => {
-  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.classList.remove('open'); });
+document.querySelectorAll('.overlay').forEach(o=>{
+  o.addEventListener('click',e=>{ if(e.target===o) o.classList.remove('open'); });
 });
 
 function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg; t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 2500);
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2500);
 }
 
 init();
